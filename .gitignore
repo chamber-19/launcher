@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.npm/
+target/
+src-tauri/target/
+bin/
+obj/
+*.user
+*.suo
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
