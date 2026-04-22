@@ -1,14 +1,35 @@
-node_modules/
-dist/
-.npm/
-target/
-src-tauri/target/
-bin/
-obj/
-*.user
-*.suo
+# ── Frontend (Tauri / Vite / npm) ────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+
+# Tauri build artifacts
+frontend/src-tauri/target/
+frontend/src-tauri/gen/
+
+# desktop-toolkit-updater shim — built by CI; local devs run fetch-updater-shim.ps1
+frontend/src-tauri/desktop-toolkit-updater.exe
+
+# ── AutoCAD plugin (tools/ch19-line-totaler) ─────────────────────────────────
+tools/ch19-line-totaler/bin/
+tools/ch19-line-totaler/obj/
+
+# ── Root-level ────────────────────────────────────────────────────────────────
+# Generated update manifest (created by generate-latest-json.mjs)
+latest.json
+RELEASE_NOTES.md
+
+# MCP runtime artifacts
+.mcp/
+
+# Root-level node_modules (ad-hoc tool installs)
+/node_modules/
+/package-lock.json
+
+# OS artifacts
 .DS_Store
 Thumbs.db
+
+# VS Code (allow mcp.json and settings.json)
 .vscode/*
-!.vscode/extensions.json
-.idea/
+!.vscode/mcp.json
+!.vscode/settings.json

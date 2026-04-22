@@ -1,0 +1,154 @@
+name: Release
+
+# Builds the NSIS installer and publishes a GitHub Release on every v* tag.
+#
+# Prerequisites:
+#   - GITHUB_TOKEN (auto-provided) with `packages: read` permission is the
+#     only auth needed — no classic PAT required.
+#   - The `chamber-19/shopvac` repository must be granted read access under
+#     the `@chamber-19/desktop-toolkit` package's "Manage Actions access"
+#     settings so the workflow GITHUB_TOKEN can install the npm package from
+#     GitHub Packages.
+#
+# Artifacts produced:
+#   - Shopvac_<version>_x64-setup.exe  (NSIS installer)
+#     Note: softprops/action-gh-release sanitises spaces to dots on upload,
+#     so the on-disk name differs from the tauri.conf.json productName.
+#   - latest.json                       (update manifest)
+#
+# TODO (before v1.0): flesh out this workflow using transmittal-builder's
+# .github/workflows/release.yml as the model. The structure below is a
+# minimal working skeleton that covers the Tauri build + publish-to-drive
+# flow without the Python sidecar steps (no Python backend in v0.1).
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write   # needed to create the GitHub Release
+      packages: read    # needed to install @chamber-19/desktop-toolkit via GITHUB_TOKEN
+
+    steps:
+      # ── 1. Checkout ─────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Tool setup ───────────────────────────────────────────────────
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+          registry-url: https://npm.pkg.github.com
+          scope: "@chamber-19"
+
+      - name: Set up Rust (stable)
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: x86_64-pc-windows-msvc
+
+      - name: Cache Rust build artefacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            frontend/src-tauri/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('frontend/src-tauri/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      # ── 3. Preflight — verify GitHub Packages access ─────────────────────
+      - name: Preflight — verify GitHub Packages access
+        shell: pwsh
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $headers = @{ Authorization = "Bearer $env:NODE_AUTH_TOKEN" }
+          try {
+            $resp = Invoke-WebRequest -Uri "https://npm.pkg.github.com/@chamber-19/desktop-toolkit" -Headers $headers -UseBasicParsing -ErrorAction Stop
+            Write-Host "✓ GitHub Packages auth OK (HTTP $($resp.StatusCode))"
+          } catch {
+            Write-Host "::error::Cannot authenticate to GitHub Packages for @chamber-19/desktop-toolkit. Error: $($_.Exception.Message)"
+            Write-Host "::error::Ensure this repo is granted access at https://github.com/orgs/chamber-19/packages/npm/desktop-toolkit/settings (Manage Actions access)."
+            throw
+          }
+
+      # ── 4. Build desktop-toolkit-updater shim ────────────────────────────
+      # The shim (desktop-toolkit-updater.exe) is a small standalone binary
+      # from the desktop-toolkit framework that survives the parent app's exit
+      # and handles the install + relaunch sequence. It must be present at
+      # frontend/src-tauri/desktop-toolkit-updater.exe before `tauri build`
+      # so the NSIS HOOK_POSTINSTALL can bundle it alongside the main exe.
+      - name: Build desktop-toolkit-updater shim
+        run: |
+          $desktopToolkitTag = "v2.2.4"
+          git clone --depth 1 --branch $desktopToolkitTag `
+            https://github.com/chamber-19/desktop-toolkit `
+            "$env:RUNNER_TEMP\dtk"
+          cargo build --release `
+            --manifest-path "$env:RUNNER_TEMP\dtk\crates\desktop-toolkit-updater\Cargo.toml" `
+            --target-dir "$env:RUNNER_TEMP\dtk-target"
+          $shimExe = "$env:RUNNER_TEMP\dtk-target\release\desktop-toolkit-updater.exe"
+          if (-not (Test-Path $shimExe)) {
+            throw "[shim] Build failed — binary not found at $shimExe"
+          }
+          Copy-Item -Force $shimExe "frontend\src-tauri\desktop-toolkit-updater.exe"
+          Write-Host "[shim] Placed at frontend\src-tauri\desktop-toolkit-updater.exe"
+        shell: pwsh
+
+      # ── 5. Frontend build ────────────────────────────────────────────────
+      - name: Install frontend dependencies
+        working-directory: frontend
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm ci
+
+      - name: Build Vite frontend
+        working-directory: frontend
+        run: npm run build
+
+      # ── 6. Tauri build ───────────────────────────────────────────────────
+      - name: Build Tauri app (NSIS installer)
+        working-directory: frontend
+        run: npx tauri build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ""   # No code-signing yet; see RELEASING.md
+
+      # ── 7. Locate built artefacts ────────────────────────────────────────
+      - name: Locate NSIS installer
+        id: find_installer
+        run: |
+          $exe = Get-ChildItem -Recurse `
+            "frontend\src-tauri\target\release\bundle\nsis\*.exe" |
+            Select-Object -First 1
+          if (-not $exe) { throw "NSIS installer not found!" }
+          echo "path=$($exe.FullName)" >> $env:GITHUB_OUTPUT
+          echo "name=$($exe.Name)"     >> $env:GITHUB_OUTPUT
+          Write-Host "Installer: $($exe.FullName)"
+        shell: pwsh
+
+      # ── 8. Generate latest.json ──────────────────────────────────────────
+      - name: Generate latest.json
+        run: node scripts/generate-latest-json.mjs
+        env:
+          INSTALLER_NAME: ${{ steps.find_installer.outputs.name }}
+          TAG_NAME:       ${{ github.ref_name }}
+
+      # ── 9. Create GitHub Release ─────────────────────────────────────────
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name:     "Shopvac ${{ github.ref_name }}"
+          fail_on_unmatched_files: true
+          files: |
+            ${{ steps.find_installer.outputs.path }}
+            latest.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
