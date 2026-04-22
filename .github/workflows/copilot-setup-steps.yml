@@ -68,7 +68,7 @@ jobs:
       # not available without AutoCAD installed, so `dotnet build` will not
       # succeed in CI. `dotnet restore` is sufficient to verify the csproj
       # parses and any pure-NuGet deps can be resolved.
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "8.x"
 
