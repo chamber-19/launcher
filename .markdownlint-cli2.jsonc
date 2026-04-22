@@ -1,0 +1,11 @@
+{
+  "config": ".markdownlint.jsonc",
+  "globs": [
+    "**/*.md",
+    "!**/node_modules/**",
+    "!frontend/src-tauri/target/**",
+    "!dist/**",
+    "!build/**",
+    "!RELEASE_NOTES.md"
+  ]
+}

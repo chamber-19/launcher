@@ -1,89 +1,115 @@
-# shopvac
+# Shopvac
 
-Chamber-19 desktop tool shell built on [`@chamber-19/desktop-toolkit`](https://github.com/chamber-19/desktop-toolkit). Provides a Tauri v2 + React/Vite frontend with splash, updater, and main windows pre-wired. Includes a self-contained AutoCAD plugin under `tools/ch19-line-totaler/`.
+A Chamber 19 desktop tool shell and AutoCAD utility suite, built on
+[`@chamber-19/desktop-toolkit`](https://github.com/chamber-19/desktop-toolkit).
+
+**Components:**
+
+- **`frontend/`** — Tauri v2 / React / Vite desktop app with splash, updater,
+  and main window pre-wired via `desktop-toolkit`.
+- **`tools/ch19-line-totaler/`** — AutoCAD managed DLL (CH19TOTAL command)
+  that totals line lengths by layer.
+
+---
 
 ## Repository layout
 
-```
+```text
 shopvac/
-├── .gitignore
-├── .npmrc
-├── LICENSE
-├── README.md
-├── package.json
-├── Cargo.toml                    workspace: src-tauri only
-├── vite.config.js
-├── index.html
-├── src/
-│   ├── main.jsx
-│   └── App.jsx
-├── splash.html
-├── splash.jsx
-├── updater.html
-├── updater.jsx
-├── src-tauri/
-│   ├── Cargo.toml
-│   ├── tauri.conf.json
-│   ├── build.rs
-│   ├── capabilities/
-│   │   └── default.json
-│   └── src/
-│       ├── main.rs
-│       └── lib.rs
-└── tools/
-    └── ch19-line-totaler/        self-contained AutoCAD DLL
+├── frontend/                   Tauri desktop app
+│   ├── src/                    React source
+│   ├── src-tauri/              Rust + Tauri config
+│   ├── package.json
+│   └── vite.config.js
+├── tools/
+│   └── ch19-line-totaler/      AutoCAD DLL (independent release cadence)
+├── scripts/                    Release automation
+├── docs/                       Reference documentation
+├── .github/
+│   ├── copilot-instructions.md
+│   ├── copilot/mcp-config.json
+│   ├── dependabot.yml
+│   └── workflows/
+│       ├── copilot-setup-steps.yml
+│       └── release.yml
+└── .vscode/
+    ├── mcp.json
+    └── settings.json
 ```
 
-## Consuming desktop-toolkit
-
-Both the npm package and the Rust crate are pinned to **v2.2.4**:
-
-- **npm:** `"@chamber-19/desktop-toolkit": "2.2.4"` in `package.json`
-- **Rust:** `desktop-toolkit = { git = "https://github.com/chamber-19/desktop-toolkit", tag = "v2.2.4" }` in `src-tauri/Cargo.toml`
-
-No desktop-toolkit source is vendored here. See the [desktop-toolkit README](https://github.com/chamber-19/desktop-toolkit#readme) for the full API story.
+---
 
 ## Setup
 
-`@chamber-19/desktop-toolkit` is published to GitHub Packages, which requires authentication even for public packages.
+`@chamber-19/desktop-toolkit` is published to GitHub Packages, which requires
+authentication even for public packages.
 
-1. Create a GitHub classic PAT at <https://github.com/settings/tokens/new> with the **`read:packages`** scope.
+1. Create a GitHub classic PAT at <https://github.com/settings/tokens/new>
+   with **only** the `read:packages` scope.
 
-2. Export it before running `npm install`:
+2. Export it before running `npm install` inside `frontend/`:
 
-   **macOS / Linux**
+   **macOS / Linux:**
+
    ```bash
    export NODE_AUTH_TOKEN=ghp_yourTokenHere
-   npm install
+   cd frontend && npm install
    ```
 
-   **Windows PowerShell**
+   **Windows PowerShell:**
+
    ```powershell
    $env:NODE_AUTH_TOKEN = "ghp_yourTokenHere"
-   npm install
+   cd frontend; npm install
    ```
 
-3. In CI, add `NODE_AUTH_TOKEN` as a repository secret and pass it to the npm install step.
+3. In CI, `GITHUB_TOKEN` is used automatically — no extra secret required.
+
+---
 
 ## Develop
 
 ```bash
+cd frontend
 npm install
-npm run tauri:dev
+npm run desktop      # = tauri dev
 ```
+
+---
 
 ## Build
 
 ```bash
-npm run tauri:build
+cd frontend
+npm run desktop:build   # = tauri build
 ```
 
-The installer is placed in `src-tauri/target/release/bundle/`.
+The NSIS installer is placed in `frontend/src-tauri/target/release/bundle/nsis/`.
+
+---
 
 ## AutoCAD plugin
 
-See [`tools/ch19-line-totaler/README.md`](tools/ch19-line-totaler/README.md).
+See [`tools/ch19-line-totaler/README.md`](tools/ch19-line-totaler/README.md)
+for build prerequisites, install instructions, and the `CH19TOTAL` /
+`CH19TOTALSIM` command reference.
 
-## Versioning
+The AutoCAD plugin versions **independently** from the desktop app — bumping
+the desktop app tag does not imply bumping the plugin.
 
-All `@chamber-19/*` dependencies are pinned to exact versions (no `^` or `~` ranges). When upgrading desktop-toolkit, update both the npm version in `package.json` and the git tag in `src-tauri/Cargo.toml` together.
+---
+
+## Reference
+
+| Document | Purpose |
+|----------|---------|
+| [RELEASING.md](./RELEASING.md) | How to cut a release (desktop app + AutoCAD plugin) |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | Local dev workflow and branching model |
+| [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) | Diagnostic playbook |
+| [MIGRATION.md](./MIGRATION.md) | Version upgrade notes |
+| [docs/mcp.md](./docs/mcp.md) | MCP server catalogue |
+| [docs/AUTO_UPDATER.md](./docs/AUTO_UPDATER.md) | Auto-updater contract |
+
+---
+
+© 2026 Chamber 19
