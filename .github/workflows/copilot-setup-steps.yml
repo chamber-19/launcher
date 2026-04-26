@@ -63,24 +63,9 @@ jobs:
             libsoup-3.0-dev \
             libjavascriptcoregtk-4.1-dev
 
-      # ── .NET SDK (so the AutoCAD plugin can at least restore) ─────────────
-      # The AutoCAD managed references (Autodesk.AutoCAD.Interop, etc.) are
-      # not available without AutoCAD installed, so `dotnet build` will not
-      # succeed in CI. `dotnet restore` is sufficient to verify the csproj
-      # parses and any pure-NuGet deps can be resolved.
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.x"
-
-      - name: Restore AutoCAD plugin NuGet packages
-        working-directory: tools/ch19-line-totaler
-        run: dotnet restore
-        continue-on-error: true   # fails without AutoCAD SDK — expected in CI
-
       - name: Verify toolchain
         run: |
           node --version
           npm --version
           cargo --version
           rustc --version
-          dotnet --version

@@ -51,7 +51,7 @@ In v0.1.0–v0.3.x the launcher is effectively just "the installer for `object-t
 Use GitHub Copilot Memory (visible at Repo Settings → Copilot → Memory) to recall and update these as decisions evolve. Current state:
 
 1. **`autocad-pipeline` is deliberately minimal.** v0.1.0 contains only `Directory.Build.props` and a parameterized `Plugin.csproj.template`. No shared C# code. No NuGet packages. No PowerShell scripts. These get added when plugin #2 exists and reveals concrete duplication, not before.
-2. **AutoCAD plugin commands use bare names, no prefix.** `TOTAL`, not `CH19TOTAL`. The Chamber 19 identity lives in package metadata, not in every command typed at the AutoCAD command line.
+2. **AutoCAD plugin commands use bare names, no prefix.** If a future plugin needs a command, register it as `TOTAL` or `EXPORT`, not `CH19TOTAL` or `CH19EXPORT`. The Chamber 19 identity lives in package metadata, not in every command typed at the AutoCAD command line.
 3. **Launcher is the installer/updater for AutoCAD plugins.** It does not ship plugin source code. Plugins live in their own repos (e.g. `object-totaler`). Launcher fetches their releases from GitHub and installs the DLL to `%APPDATA%\Chamber19\AutoCAD\`, managing NETLOAD via the user's `acaddoc.lsp`.
 4. **GitHub Releases is the distribution channel, not a network share.** Even for internal use. This keeps engineers on VPN-optional workflows and is ready for external distribution if that ever happens.
 5. **Plugins and the launcher release on independent tags.** Plugin tags live in their own repos. Launcher has its own version. A launcher update does not imply a plugin update and vice versa.

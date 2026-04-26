@@ -30,7 +30,3 @@ Brief description of the breaking change.
 
 Step-by-step instructions for upgrading.
 ```
-
-If the change affects the AutoCAD plugin (`tools/ch19-line-totaler/`) rather
-than the desktop app, note that clearly at the top of the section — the two
-components version independently.

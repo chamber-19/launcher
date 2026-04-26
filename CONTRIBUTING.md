@@ -1,7 +1,7 @@
 # Contributing to Shopvac
 
 Thank you for contributing to **Chamber-19 Shopvac** — the desktop tool shell
-and AutoCAD utility suite for Chamber 19.
+for Chamber 19.
 
 This document covers the repository architecture, branching model, versioning
 rules, and the release workflow. For the step-by-step mechanics of cutting a
@@ -11,15 +11,14 @@ release, see [RELEASING.md](./RELEASING.md).
 
 ## 1. Introduction
 
-`shopvac` is a multi-tool repository containing:
+`shopvac` contains the Tauri desktop shell:
 
 - **`frontend/`** — the Tauri/Vite/React desktop shell, consuming
   [`@chamber-19/desktop-toolkit`](https://github.com/chamber-19/desktop-toolkit)
   from GitHub Packages.
-- **`tools/ch19-line-totaler/`** — the AutoCAD C# plugin (CH19TOTAL command).
 
-The two components are **independently versioned** — bumping the desktop app
-tag does not imply bumping the AutoCAD plugin, and vice versa.
+AutoCAD-side workflows are handled by Autodesk's first-party Assistant in
+AutoCAD 2027+; Shopvac no longer ships a managed plugin.
 
 ---
 
@@ -28,7 +27,6 @@ tag does not imply bumping the AutoCAD plugin, and vice versa.
 | Path | Role | Consumes |
 |------|------|----------|
 | `frontend/` | Tauri desktop shell | `@chamber-19/desktop-toolkit` (npm), `desktop-toolkit` crate (git tag) |
-| `tools/ch19-line-totaler/` | AutoCAD managed DLL | Standard .NET 4.8 / net8.0-windows |
 | `scripts/` | Release automation | Node.js + PowerShell |
 | `docs/` | Reference documentation | — |
 
@@ -52,9 +50,7 @@ tag does not imply bumping the AutoCAD plugin, and vice versa.
 
 This repo follows **[SemVer](https://semver.org/)** (`MAJOR.MINOR.PATCH`).
 
-The desktop app and the AutoCAD plugin maintain **separate** version numbers.
-A release tag `vX.Y.Z` on `main` refers to the desktop app version. AutoCAD
-plugin releases are tagged `acad-vX.Y.Z`.
+A release tag `vX.Y.Z` on `main` refers to the desktop app version.
 
 ### Pinning desktop-toolkit
 
@@ -85,14 +81,6 @@ together in the same PR.
    created with the installer attached.
 5. Smoke-test the built installer locally before running
    `scripts/publish-to-drive.ps1`.
-
-### AutoCAD plugin release
-
-The AutoCAD plugin (`tools/ch19-line-totaler/`) is built and released
-**independently** from the desktop app. Bump `AssemblyInfo.cs` and
-`Ch19LineTotaler.csproj`, tag `acad-vX.Y.Z`, and distribute the resulting DLL
-separately. See `tools/ch19-line-totaler/README.md` for build and install
-instructions.
 
 ---
 
@@ -134,15 +122,7 @@ The installer is placed in `frontend/src-tauri/target/release/bundle/nsis/`.
 
 ---
 
-## 7. Local development — AutoCAD plugin
-
-See [`tools/ch19-line-totaler/README.md`](./tools/ch19-line-totaler/README.md)
-for build prerequisites (AutoCAD 2022–2026 installed, .NET SDK 8) and the
-`NETLOAD` install flow.
-
----
-
-## 8. Commit & PR conventions
+## 7. Commit & PR conventions
 
 This project uses **[Conventional Commits](https://www.conventionalcommits.org/)**:
 
@@ -156,7 +136,7 @@ This project uses **[Conventional Commits](https://www.conventionalcommits.org/)
 
 ---
 
-## 9. Documentation policy
+## 8. Documentation policy
 
 This repo enforces a "no stale docs" rule. See
 [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) for
@@ -166,7 +146,7 @@ changes code that has documented behaviour, the docs change in the same PR.
 
 ---
 
-## 10. Code of conduct & contact
+## 9. Code of conduct & contact
 
 Be respectful and constructive in all interactions.
 
