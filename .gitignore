@@ -9,10 +9,6 @@ frontend/src-tauri/gen/
 # desktop-toolkit-updater shim — built by CI; local devs run fetch-updater-shim.ps1
 frontend/src-tauri/desktop-toolkit-updater.exe
 
-# ── AutoCAD plugin (tools/ch19-line-totaler) ─────────────────────────────────
-tools/ch19-line-totaler/bin/
-tools/ch19-line-totaler/obj/
-
 # ── Root-level ────────────────────────────────────────────────────────────────
 # Generated update manifest (created by generate-latest-json.mjs)
 latest.json

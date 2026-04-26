@@ -53,16 +53,3 @@ updates:
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 5
-
-  # NuGet (AutoCAD plugin)
-  # NOTE: dependabot supports SDK-style .csproj files but the AutoCAD managed
-  # references (Autodesk.AutoCAD.Interop, etc.) are resolved from a locally
-  # installed AutoCAD SDK and are NOT available on NuGet. Dependabot will
-  # update any standard NuGet deps in the project but cannot update those
-  # AutoCAD references — they must be updated manually when targeting a new
-  # AutoCAD release year.
-  - package-ecosystem: "nuget"
-    directory: "/tools/ch19-line-totaler"
-    schedule:
-      interval: "monthly"
-    open-pull-requests-limit: 3

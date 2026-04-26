@@ -131,33 +131,7 @@ distribute.
 
 ---
 
-## 7. AutoCAD plugin: `NETLOAD` fails with "Cannot load assembly"
-
-**Symptom:** After `NETLOAD` in AutoCAD, the command line shows an error such
-as:
-
-```text
-Cannot load assembly. Check the log file for details.
-```
-
-**Cause:** The DLL was built targeting a different AutoCAD year than the
-currently installed version, or the .NET framework target does not match.
-
-**Fix:**
-
-1. Check the AutoCAD year: `About → Version`.
-2. Rebuild with the correct `AUTOCAD_YEAR` property:
-
-   ```powershell
-   dotnet build -c Release -p:AutoCadYear=2024
-   ```
-
-3. See `tools/ch19-line-totaler/README.md` for the full build and install
-   flow.
-
----
-
-## 8. Lessons learned from a sibling repository (historical)
+## 7. Lessons learned from a sibling repository (historical)
 
 > **Historical archive:** the following is a summary of a production incident
 > in `chamber-19/transmittal-builder` v6.2.2. It is included here as a

@@ -118,34 +118,7 @@ Within ~24 hours every user who launches the app will see the
 
 ---
 
-## 3. AutoCAD plugin release (independent cadence)
-
-> **Important:** The AutoCAD plugin (`tools/ch19-line-totaler/`) versions
-> **independently** from the desktop app. Do not tie its version to the desktop
-> app tag. Use `acad-vX.Y.Z` tags for plugin releases.
-
-1. Bump `AssemblyInfo.cs` (`[assembly: AssemblyVersion("X.Y.Z")]`) and
-   `Ch19LineTotaler.csproj` (`<Version>X.Y.Z</Version>`).
-2. Commit and tag:
-
-   ```powershell
-   git commit -m "chore: bump ch19-line-totaler to X.Y.Z"
-   git tag acad-vX.Y.Z
-   git push && git push --tags
-   ```
-
-3. Build on a Windows machine with AutoCAD installed:
-
-   ```powershell
-   cd tools/ch19-line-totaler
-   dotnet build -c Release
-   ```
-
-4. Distribute the resulting `Ch19LineTotaler.dll` via your internal channel.
-
----
-
-## 4. Rollback
+## 3. Rollback
 
 If a release has a critical bug:
 
@@ -167,7 +140,7 @@ If a release has a critical bug:
 
 ---
 
-## 5. Troubleshooting
+## 4. Troubleshooting
 
 ### Windows SmartScreen warning
 
