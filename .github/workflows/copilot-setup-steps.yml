@@ -24,10 +24,10 @@ jobs:
       packages: read   # required for GitHub Packages npm registry
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # ── Node + GitHub Packages auth ────────────────────────────────────────
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: npm
