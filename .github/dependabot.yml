@@ -1,28 +1,25 @@
 # Dependabot configuration
 # ---------------------------------------------------------------------------
-# Shopvac ships a Windows-only NSIS installer (see
-# frontend/src-tauri/tauri.conf.json -> bundle.targets = ["nsis"] and the
-# Release workflow which only runs on windows-latest). The Tauri/gtk-rs
-# crate graph still pulls a handful of Linux-only GUI crates as transitive
-# deps when `cargo metadata` is run on any host, which is what the GitHub
-# Advisory Database scans. Two of those transitive deps currently trigger
-# RUSTSEC alerts that do NOT affect our shipped binary:
+# Launcher ships a Windows-only NSIS installer. The Tauri/gtk-rs crate
+# graph pulls a handful of Linux-only GUI crates as transitive deps when
+# `cargo metadata` is run on any host, which is what the GitHub Advisory
+# Database scans. Two of those transitive deps currently trigger RUSTSEC
+# alerts that do NOT affect our shipped binary:
 #
-#   * glib 0.18.x   — RUSTSEC-2024-0429 (VariantStrIter unsoundness).
-#                     Pulled in by gtk-rs 0.18 → tao → tauri-runtime-wry,
-#                     compiled only for the Linux GTK target which we
-#                     never build/ship.
-#   * rand 0.7.x    — RUSTSEC-2024-0421-style soundness issue.
-#                     Pulled in by old gtk-rs proc-macro deps; same story.
+#   * glib 0.18.x — RUSTSEC-2024-0429 (VariantStrIter unsoundness).
+#                   Pulled in by gtk-rs 0.18 → tao → tauri-runtime-wry,
+#                   compiled only for the Linux GTK target which we never
+#                   build/ship.
+#   * rand 0.7.x  — RUSTSEC-2024-0421-style soundness issue. Pulled in by
+#                   old gtk-rs proc-macro deps; same story.
 #
-# Upgrading either requires Tauri itself to move past gtk-rs 0.18, which
-# is a major Tauri rev. Until then we explicitly ignore both packages so
-# Dependabot stops opening PRs/alerts the maintainers cannot action.
+# Upgrading either requires Tauri itself to move past gtk-rs 0.18 (major
+# Tauri rev). Until then we explicitly ignore both packages so Dependabot
+# stops opening PRs the maintainers cannot action.
 #
-# NOTE: ignores below stop *future* PRs and security update PRs from
-# Dependabot. Existing alerts in the Security tab still need to be
-# dismissed once via the GitHub UI ("Tolerable risk — transitive
-# Linux-only dep, Windows-only product"). See TROUBLESHOOTING.md §6.
+# Existing Security tab alerts still need one-time dismissal via the UI
+# ("Tolerable risk — transitive Linux-only dep, Windows-only product").
+# See TROUBLESHOOTING.md §6.
 # ---------------------------------------------------------------------------
 version: 2
 updates:
@@ -51,5 +48,5 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
     open-pull-requests-limit: 5
