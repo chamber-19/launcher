@@ -54,6 +54,12 @@ via environment variables:
 | Drawing List Manager | `VITE_DRAWING_LIST_MANAGER_URL` | `http://127.0.0.1:8002` | Project drawing register management (Python FastAPI) |
 | Transmittal Builder | `VITE_TRANSMITTAL_BUILDER_URL` | `http://127.0.0.1:8001` | Document package generation (Python FastAPI) |
 
+**Note:** **Block Library** is a separate desktop app (Tauri + Three.js 3D viewer).
+It is **not** routed via launcher's HTTP mechanism because 3D rendering requires
+GPU memory management and client-side WebGL context. Block Library is installed
+separately and launched independently. See [`chamber-19/block-library`](https://github.com/chamber-19/block-library)
+for details on its standalone deployment model.
+
 Example `.env` for local development:
 
 ```bash

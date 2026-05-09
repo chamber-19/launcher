@@ -32,10 +32,22 @@ and Tauri v2 / React / Vite.
    └────────┘  │├─ Batch Find & Replace     │
                 │└─ Drawing List Manager     │
                 └────────────────────────────┘
+                
+  ┌──────────────────────────┐
+  │ Block Library (separate) │
+  │ (Tauri + Three.js)       │
+  │ Standalone desktop app   │
+  └──────────────────────────┘
 ```
 
 Launcher detects configured backend services and routes users to them after
-activation succeeds. Each backend app is a stateless HTTP service.
+activation succeeds. Each routed backend is a stateless HTTP service.
+
+**Block Library** is a separate desktop application (Tauri + React + Three.js)
+that handles 3D DXF viewing with GPU acceleration. It is **not** routed through
+launcher's HTTP mechanism because real-time 3D rendering requires client-side
+WebGL context and GPU memory management. Block Library is installed and launched
+independently.
 
 ---
 
