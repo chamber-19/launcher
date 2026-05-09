@@ -18,8 +18,9 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Updater orchestration and binary signing
 
 - **Multi-backend support** — launcher now routes to multiple backend HTTP services:
-  - Transmittal Builder (document package generation)
   - Batch Find & Replace (batch text replacement in DWG files)
+  - Drawing List Manager (project drawing register management)
+  - Transmittal Builder (document package generation)
   - Additional backends can be registered via `VITE_*_URL` environment variables
 
 - Tauri Rust commands for activation in `src-tauri/src/activation.rs`:

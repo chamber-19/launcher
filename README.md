@@ -72,15 +72,17 @@ discovered via environment variables:
 
 ```bash
 # Backend URLs (required; defaults shown)
-VITE_TRANSMITTAL_BUILDER_URL=http://127.0.0.1:8001
 VITE_BATCH_FNR_URL=http://127.0.0.1:8000
+VITE_DRAWING_LIST_MANAGER_URL=http://127.0.0.1:8002
+VITE_TRANSMITTAL_BUILDER_URL=http://127.0.0.1:8001
 
 # Activation enforcement (optional; defaults to permissive)
 LAUNCHER_ENFORCE_PIN=1  # Fail startup if no activation token
 ```
 
-- `VITE_TRANSMITTAL_BUILDER_URL` — URL for Transmittal Builder backend service
 - `VITE_BATCH_FNR_URL` — URL for Batch Find & Replace backend service
+- `VITE_DRAWING_LIST_MANAGER_URL` — URL for Drawing List Manager backend service
+- `VITE_TRANSMITTAL_BUILDER_URL` — URL for Transmittal Builder backend service
 - `LAUNCHER_ENFORCE_PIN=1` enables startup fail-fast when no activation token exists
 - Additional backend URLs can be added by updating environment config and
   `frontend/src/App.jsx` `AVAILABLE_APPS` table

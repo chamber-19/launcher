@@ -11,15 +11,20 @@ const DEFAULT_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.
 
 // Available apps with their backend URLs
 const AVAILABLE_APPS = {
-  'transmittal-builder': {
-    label: 'Transmittal Builder',
-    url: import.meta.env.VITE_TRANSMITTAL_BUILDER_URL || import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8001',
-    probeEndpoint: '/api/scan-projects',
-  },
   'batch-fnr': {
     label: 'Batch Find & Replace',
     url: import.meta.env.VITE_BATCH_FNR_URL || 'http://127.0.0.1:8000',
     probeEndpoint: '/api/scan-folder',
+  },
+  'drawing-list-manager': {
+    label: 'Drawing List Manager',
+    url: import.meta.env.VITE_DRAWING_LIST_MANAGER_URL || 'http://127.0.0.1:8002',
+    probeEndpoint: '/api/project/recent',
+  },
+  'transmittal-builder': {
+    label: 'Transmittal Builder',
+    url: import.meta.env.VITE_TRANSMITTAL_BUILDER_URL || import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8001',
+    probeEndpoint: '/api/scan-projects',
   },
 };
 

@@ -49,22 +49,27 @@ The launcher routes to multiple backend HTTP services. Each backend is configure
 via environment variables:
 
 | Backend | Env Variable | Default | Purpose |
-|---|---|---|---|
-| Transmittal Builder | `VITE_TRANSMITTAL_BUILDER_URL` | `http://127.0.0.1:8001` | Document package generation (Python FastAPI) |
+| --- | --- | --- | --- |
 | Batch Find & Replace | `VITE_BATCH_FNR_URL` | `http://127.0.0.1:8000` | Batch text replacement in DWG files (Python FastAPI) |
+| Drawing List Manager | `VITE_DRAWING_LIST_MANAGER_URL` | `http://127.0.0.1:8002` | Project drawing register management (Python FastAPI) |
+| Transmittal Builder | `VITE_TRANSMITTAL_BUILDER_URL` | `http://127.0.0.1:8001` | Document package generation (Python FastAPI) |
 
 Example `.env` for local development:
 
 ```bash
-VITE_TRANSMITTAL_BUILDER_URL=http://127.0.0.1:8001
 VITE_BATCH_FNR_URL=http://127.0.0.1:8000
+VITE_DRAWING_LIST_MANAGER_URL=http://127.0.0.1:8002
+VITE_TRANSMITTAL_BUILDER_URL=http://127.0.0.1:8001
 LAUNCHER_ENFORCE_PIN=1
 ```
 
 Each backend must respond to:
+
 - `GET /api/health` — returns `200 OK` with service info (used for startup validation)
-- Protected endpoint for token validation (varies by backend; currently launcher
-  probes `/api/scan-projects` for transmittal-builder, `/api/scan-folder` for batch-fnr)
+- Protected endpoint for token validation (varies by backend):
+  - `POST /api/scan-folder` for batch-fnr
+  - `GET /api/project/recent` for drawing-list-manager
+  - `GET /api/scan-projects` for transmittal-builder
 
 ## Dependency Contract
 
