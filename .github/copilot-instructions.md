@@ -3,9 +3,14 @@
 > **Repo:** `chamber-19/launcher`
 > **Role:** Universal Tauri desktop shell for Chamber 19 tools.
 > Handles: App activation, routing, updates, and desktop integration.
-
-Use the shared Chamber 19 conventions from `chamber-19/.github` as reference
-guidance, but treat this file as the repo-specific source of truth.
+>
+> **Source of Truth:** See [`chamber-19/.github`](https://github.com/chamber-19/.github) for:
+> - Org-wide architecture and SKILLS
+> - Hard architectural decisions (Tauri, Python, Rust constraints)
+> - Family-wide conventions and AI agent guidance
+>
+> This file contains **repo-specific guidance only**. Repo-specific rules override
+> org-wide rules on conflict.
 
 ## Current Shape
 
@@ -70,6 +75,20 @@ All markdown files in this repo **MUST** be formatted cleanly with no linter war
 Agent guidance: Any markdown file with linter warnings is treated as technical debt.
 Format fixes are low-risk and required. Update all `.md` files before merging PRs.
 For new markdown files, validate with editor linter before committing.
+
+## SKILLS and Shared Resources
+
+This repo draws on shared knowledge from [`chamber-19/.github`](https://github.com/chamber-19/.github):
+
+- **SKILLS** — Reusable domain knowledge in `.github/` folder (Tauri, Python, Rust, Markdown, etc.)
+- **`copilot-instructions.md`** — Org-wide baseline for all agents
+- **Hard architectural decisions** — Closed decisions on Tauri, Python, AutoCAD patterns
+- **Desktop app architecture** — Launcher + toolkit + backends model
+- **Family conventions** — Shared practices across all repos
+
+**When working in this repo:** Always check `.github` repo first for shared context,
+then apply repo-specific rules from this file. Repo-specific rules override org-wide
+rules on conflict.
 
 ---
 
