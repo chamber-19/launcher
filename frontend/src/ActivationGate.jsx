@@ -2,12 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 
 export default function ActivationGate({ backendUrl, onActivated }) {
-  const [step, setStep] = useState('pin'); // 'pin' or 'success'
   const [pin, setPin] = useState('');
   const [hardware, setHardware] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [token, setToken] = useState(null);
+
+  function toErrorMessage(err, fallbackMessage) {
+    if (!err) return fallbackMessage;
+    if (typeof err === 'string') return err;
+    if (typeof err === 'object' && err.message) return err.message;
+    return String(err);
+  }
 
   // Get hardware fingerprint on mount
   useEffect(() => {
@@ -19,10 +24,19 @@ export default function ActivationGate({ backendUrl, onActivated }) {
         // Try to restore existing token from storage
         const savedToken = localStorage.getItem('activation_token');
         const savedHardware = localStorage.getItem('activation_hardware');
-        if (savedToken && savedHardware) {
-          setToken(savedToken);
-          setStep('success');
-          onActivated();
+        if (savedToken && savedHardware && savedHardware === fp.hash) {
+          const isValid = await invoke('validate_activation_token', {
+            backendUrl: backendUrl || 'http://127.0.0.1:8000',
+            hardwareFingerprint: savedHardware,
+            token: savedToken,
+          });
+
+          if (isValid) {
+            onActivated();
+          } else {
+            localStorage.removeItem('activation_token');
+            localStorage.removeItem('activation_hardware');
+          }
         }
       } catch (err) {
         console.error('Failed to get hardware fingerprint:', err);
@@ -37,20 +51,25 @@ export default function ActivationGate({ backendUrl, onActivated }) {
     setLoading(true);
     setError(null);
     try {
-      const result = await invoke('request_activation_pin', {
+      await invoke('request_activation_pin', {
         backendUrl: backendUrl || 'http://127.0.0.1:8000',
       });
       setPin('');
       setError(null);
       // Now wait for user to enter PIN
     } catch (err) {
-      setError(err || 'Failed to request PIN. Are you on the office network?');
+      setError(toErrorMessage(err, 'Failed to request PIN. Are you on the office network?'));
     }
     setLoading(false);
   }
 
   // Activate with PIN + hardware
   async function handleActivate() {
+    if (!hardware) {
+      setError('Hardware fingerprint is still loading. Please wait a moment.');
+      return;
+    }
+
     if (!pin) {
       setError('Please enter the PIN');
       return;
@@ -69,17 +88,11 @@ export default function ActivationGate({ backendUrl, onActivated }) {
       localStorage.setItem('activation_token', activationToken);
       localStorage.setItem('activation_hardware', hardware);
       
-      setToken(activationToken);
-      setStep('success');
       onActivated();
     } catch (err) {
-      setError(err || 'Activation failed. Please try again.');
+      setError(toErrorMessage(err, 'Activation failed. Please try again.'));
     }
     setLoading(false);
-  }
-
-  if (token) {
-    return null;
   }
 
   return (
@@ -151,17 +164,17 @@ export default function ActivationGate({ backendUrl, onActivated }) {
           />
           <button
             onClick={handleActivate}
-            disabled={loading || !pin}
+            disabled={loading || !pin || !hardware}
             style={{
               width: '100%',
               padding: '12px',
               fontSize: '16px',
               fontWeight: '600',
-              backgroundColor: loading || !pin ? '#ccc' : '#007bff',
+              backgroundColor: loading || !pin || !hardware ? '#ccc' : '#007bff',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
-              cursor: loading || !pin ? 'not-allowed' : 'pointer',
+              cursor: loading || !pin || !hardware ? 'not-allowed' : 'pointer',
             }}
           >
             {loading ? 'Activating...' : 'Activate'}

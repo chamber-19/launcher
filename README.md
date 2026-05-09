@@ -45,9 +45,8 @@ launcher/
 │   ├── src/                    React components (ActivationGate, App, etc.)
 │   ├── src-tauri/              Rust + Tauri config
 │   │   └── src/
-│   │       ├── main.rs         App init, sidecar launch
+│   │       ├── main.rs         App init
 │   │       ├── lib.rs          Tauri setup
-│   │       ├── sidecar.rs      Sidecar lifecycle
 │   │       └── activation.rs   Activation commands (hardware, PIN, token)
 │   ├── package.json
 │   └── vite.config.js
@@ -57,7 +56,6 @@ launcher/
 │   ├── copilot-instructions.md Agent guidance
 │   ├── workflows/
 │   │   ├── release.yml         Signed binary release
-│   │   └── toolkit-pin-check.yml Dependency validation
 ├── CHANGELOG.md                Activation + routing changes
 ├── RELEASING.md                Release procedures
 └── TROUBLESHOOTING.md          Diagnostic playbook
@@ -67,33 +65,23 @@ launcher/
 
 ## Configuration
 
-Launcher discovers and routes to backend apps via configuration. Each tool
-registers as an HTTP endpoint:
+Current launcher frontend configuration is environment-based:
 
-```json
-{
-  "apps": [
-    {
-      "id": "transmittal-builder",
-      "name": "Transmittal Builder",
-      "sidecar": "transmittal-backend",
-      "port": 8001
-    }
-  ],
-  "activation": {
-    "office_ip_ranges": "203.0.113.0/24,198.51.100.0/24",
-    "token_expiry_days": 14
-  }
-}
+```text
+VITE_BACKEND_URL=http://127.0.0.1:8000
+LAUNCHER_ENFORCE_PIN=1
 ```
+
+- `VITE_BACKEND_URL` sets the backend base URL shown/launched in the UI.
+- `LAUNCHER_ENFORCE_PIN=1` enables startup fail-fast when no activation token exists.
 
 When a user activates:
 
 1. Launcher collects hardware (hostname + Windows SID + MAC → SHA256 hash)
-2. Calls `desktop-toolkit` activation API: `/enrollment/request-pin` (office IP check)
+2. Calls `desktop-toolkit` activation API: `/api/enrollment/request-pin` (office IP check)
 3. User enters PIN
-4. Launcher calls `/enrollment/activate` → receives signed token
-5. Token stored in browser localStorage (encrypted by OS DPAPI on Windows)
+4. Launcher calls `/api/enrollment/activate` → receives signed token
+5. Token stored in browser localStorage
 6. Launcher routes to registered backend app on success
 
 ---
@@ -128,25 +116,24 @@ See [`desktop-toolkit` activation docs](https://github.com/chamber-19/desktop-to
 authentication even for public packages.
 
 1. Create a GitHub classic PAT at <https://github.com/settings/tokens/new>
-   with **only** the `read:packages` scope.
+  with **only** the `read:packages` scope.
 
-2. Export it before running `npm install` inside `frontend/`:
+1. Export it before running `npm install` inside `frontend/`.
+  **macOS / Linux:**
 
-   **macOS / Linux:**
+  ```bash
+  export NODE_AUTH_TOKEN=<YOUR_GITHUB_PACKAGES_TOKEN>
+  cd frontend && npm install
+  ```
 
-   ```bash
-   export NODE_AUTH_TOKEN=ghp_yourTokenHere
-   cd frontend && npm install
-   ```
+  **Windows PowerShell:**
 
-   **Windows PowerShell:**
+  ```powershell
+  $env:NODE_AUTH_TOKEN = "<YOUR_GITHUB_PACKAGES_TOKEN>"
+  cd frontend; npm install
+  ```
 
-   ```powershell
-   $env:NODE_AUTH_TOKEN = "ghp_yourTokenHere"
-   cd frontend; npm install
-   ```
-
-3. In CI, `GITHUB_TOKEN` is used automatically — no extra secret required.
+1. In CI, `GITHUB_TOKEN` is used automatically; no extra secret is required.
 
 ---
 

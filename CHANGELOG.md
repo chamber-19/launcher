@@ -21,7 +21,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - `get_hardware_fingerprint()` — collect machine hardware
   - `request_activation_pin()` — call toolkit activation server
   - `activate_machine()` — activate with PIN + hardware binding
-  - `validate_activation_token()` — periodic token revalidation
+  - `validate_activation_token()` — startup token validation
 
 - React ActivationGate component in `src/ActivationGate.jsx`:
   - PIN entry UI

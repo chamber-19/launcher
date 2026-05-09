@@ -172,8 +172,8 @@ function MainApp({ backendUrl, onUnauthorized }) {
 
   return (
     <div style={{ padding: '20px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      <h1>Shopvac v0.1.0</h1>
-      <p>App launcher and activation shell for Chamber-19 tools</p>
+      <h1>Launcher v0.1.0</h1>
+      <p>Universal activation shell for Chamber 19 tools</p>
       
       <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#f0f0f0', borderRadius: '4px' }}>
         <h2>Available Apps</h2>
