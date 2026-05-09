@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 
-export default function ActivationGate({ backendUrl, children }) {
+export default function ActivationGate({ backendUrl, onActivated }) {
   const [step, setStep] = useState('pin'); // 'pin' or 'success'
   const [pin, setPin] = useState('');
   const [hardware, setHardware] = useState(null);
@@ -18,9 +18,11 @@ export default function ActivationGate({ backendUrl, children }) {
         
         // Try to restore existing token from storage
         const savedToken = localStorage.getItem('activation_token');
-        if (savedToken) {
+        const savedHardware = localStorage.getItem('activation_hardware');
+        if (savedToken && savedHardware) {
           setToken(savedToken);
           setStep('success');
+          onActivated();
         }
       } catch (err) {
         console.error('Failed to get hardware fingerprint:', err);
@@ -28,7 +30,7 @@ export default function ActivationGate({ backendUrl, children }) {
       }
     }
     getHardware();
-  }, []);
+  }, [onActivated]);
 
   // Request PIN from server (office network only)
   async function handleRequestPin() {
@@ -69,6 +71,7 @@ export default function ActivationGate({ backendUrl, children }) {
       
       setToken(activationToken);
       setStep('success');
+      onActivated();
     } catch (err) {
       setError(err || 'Activation failed. Please try again.');
     }
@@ -76,7 +79,7 @@ export default function ActivationGate({ backendUrl, children }) {
   }
 
   if (token) {
-    return children;
+    return null;
   }
 
   return (
@@ -107,13 +110,32 @@ export default function ActivationGate({ backendUrl, children }) {
           Enter the PIN displayed on your activation code
         </p>
 
+        <button
+          onClick={handleRequestPin}
+          disabled={loading}
+          style={{
+            width: '100%',
+            padding: '10px',
+            fontSize: '14px',
+            fontWeight: '600',
+            backgroundColor: '#eceff5',
+            color: '#2f3a4f',
+            border: '1px solid #d5dbe6',
+            borderRadius: '4px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            marginBottom: '12px',
+          }}
+        >
+          Request PIN
+        </button>
+
         <div style={{ marginBottom: '20px' }}>
           <input
             type="text"
             placeholder="Enter PIN"
             value={pin}
             onChange={(e) => setPin(e.target.value.toUpperCase())}
-            onKeyPress={(e) => e.key === 'Enter' && handleActivate()}
+            onKeyDown={(e) => e.key === 'Enter' && handleActivate()}
             disabled={loading}
             style={{
               width: '100%',

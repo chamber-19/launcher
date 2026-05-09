@@ -109,6 +109,15 @@ Activation is **centralized in `desktop-toolkit`**; launcher is just the client:
 - **14-day expiry** — Tokens eventually expire; offline grace window
 - **Admin revocation** — Can revoke machines server-side
 
+Launcher request behavior for backend APIs:
+
+- Backend calls are wrapped with `withActivationHeaders()` and send
+  `Authorization: Bearer <activation_token>` when a token is present.
+- In activation-enforced builds (`LAUNCHER_ENFORCE_PIN=1`), launcher startup
+  fails fast if no activation token exists.
+- A backend `401` response is treated as an auth revocation/expiry signal:
+  launcher clears local activation state and returns the user to activation.
+
 See [`desktop-toolkit` activation docs](https://github.com/chamber-19/desktop-toolkit) for API details.
 
 ---

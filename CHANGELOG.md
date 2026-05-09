@@ -36,3 +36,16 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Consumer apps no longer need Tauri/React code; launcher handles all UI
 - Backend services register as HTTP endpoints; launcher routes to them
+- Launcher frontend now attaches `Authorization: Bearer <activation_token>` to
+  backend startup/probe calls via `withActivationHeaders()`.
+- Launcher startup now fails fast in activation-enforced builds when activation
+  token state is missing.
+- Launcher now treats backend `401` responses as a hard auth failure,
+  clears local activation state, and routes users back to re-activation.
+
+### Tests
+
+- Frontend auth utility `src/activationAuth.js` for token lookup,
+  authorization header wiring, and activation-state clearing.
+- Launcher E2E coverage in `src/App.e2e.test.jsx` for
+  activate -> protected access -> forced re-activation on `401`.
