@@ -25,15 +25,17 @@ and Tauri v2 / React / Vite.
                │
         ┌──────┴──────┐
         │             │
-   ┌────▼───┐  ┌─────▼──────────┐
-   │desktop-│  │[Backend App]   │
-   │toolkit │  │(HTTP service)  │
-   │(auth)  │  │e.g. transmittal│
-   └────────┘  └────────────────┘
+   ┌────▼───┐  ┌─────▼──────────────────────┐
+   │desktop-│  │Multiple Backend Services   │
+   │toolkit │  │(HTTP services)             │
+   │(auth)  │  │├─ Transmittal Builder      │
+   └────────┘  │├─ Batch Find & Replace     │
+                │└─ Drawing List Manager     │
+                └────────────────────────────┘
 ```
 
-Each backend app registers an HTTP endpoint; launcher routes users to it after
-activation succeeds.
+Launcher detects configured backend services and routes users to them after
+activation succeeds. Each backend app is a stateless HTTP service.
 
 ---
 
@@ -65,15 +67,23 @@ launcher/
 
 ## Configuration
 
-Current launcher frontend configuration is environment-based:
+Launcher frontend configuration is environment-based. Backend services are
+discovered via environment variables:
 
-```text
-VITE_BACKEND_URL=http://127.0.0.1:8000
-LAUNCHER_ENFORCE_PIN=1
+```bash
+# Backend URLs (required; defaults shown)
+VITE_TRANSMITTAL_BUILDER_URL=http://127.0.0.1:8001
+VITE_BATCH_FNR_URL=http://127.0.0.1:8000
+
+# Activation enforcement (optional; defaults to permissive)
+LAUNCHER_ENFORCE_PIN=1  # Fail startup if no activation token
 ```
 
-- `VITE_BACKEND_URL` sets the backend base URL shown/launched in the UI.
-- `LAUNCHER_ENFORCE_PIN=1` enables startup fail-fast when no activation token exists.
+- `VITE_TRANSMITTAL_BUILDER_URL` — URL for Transmittal Builder backend service
+- `VITE_BATCH_FNR_URL` — URL for Batch Find & Replace backend service
+- `LAUNCHER_ENFORCE_PIN=1` enables startup fail-fast when no activation token exists
+- Additional backend URLs can be added by updating environment config and
+  `frontend/src/App.jsx` `AVAILABLE_APPS` table
 
 When a user activates:
 

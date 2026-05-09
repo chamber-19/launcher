@@ -43,6 +43,29 @@ cargo check
 - Token storage: browser localStorage in current launcher implementation
 - Token signing: HMAC-SHA256 with hardware binding
 
+## Backend Service Configuration
+
+The launcher routes to multiple backend HTTP services. Each backend is configured
+via environment variables:
+
+| Backend | Env Variable | Default | Purpose |
+|---|---|---|---|
+| Transmittal Builder | `VITE_TRANSMITTAL_BUILDER_URL` | `http://127.0.0.1:8001` | Document package generation (Python FastAPI) |
+| Batch Find & Replace | `VITE_BATCH_FNR_URL` | `http://127.0.0.1:8000` | Batch text replacement in DWG files (Python FastAPI) |
+
+Example `.env` for local development:
+
+```bash
+VITE_TRANSMITTAL_BUILDER_URL=http://127.0.0.1:8001
+VITE_BATCH_FNR_URL=http://127.0.0.1:8000
+LAUNCHER_ENFORCE_PIN=1
+```
+
+Each backend must respond to:
+- `GET /api/health` — returns `200 OK` with service info (used for startup validation)
+- Protected endpoint for token validation (varies by backend; currently launcher
+  probes `/api/scan-projects` for transmittal-builder, `/api/scan-folder` for batch-fnr)
+
 ## Dependency Contract
 
 - Keep `frontend/package.json`, `frontend/src-tauri/Cargo.toml`, and

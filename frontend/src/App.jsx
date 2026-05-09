@@ -9,9 +9,25 @@ import {
 
 const DEFAULT_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
 
-async function probeProtectedBackend(backendUrl) {
+// Available apps with their backend URLs
+const AVAILABLE_APPS = {
+  'transmittal-builder': {
+    label: 'Transmittal Builder',
+    url: import.meta.env.VITE_TRANSMITTAL_BUILDER_URL || import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8001',
+    probeEndpoint: '/api/scan-projects',
+  },
+  'batch-fnr': {
+    label: 'Batch Find & Replace',
+    url: import.meta.env.VITE_BATCH_FNR_URL || 'http://127.0.0.1:8000',
+    probeEndpoint: '/api/scan-folder',
+  },
+};
+
+async function probeProtectedBackend(backendUrl, probeEndpoint = '/api/scan-projects') {
   const rootPath = 'C:\\';
-  const probeUrl = `${backendUrl}/api/scan-projects?root=${encodeURIComponent(rootPath)}`;
+  const probeUrl = probeEndpoint.includes('?')
+    ? `${backendUrl}${probeEndpoint}`
+    : `${backendUrl}${probeEndpoint}?root=${encodeURIComponent(rootPath)}`;
   return fetch(probeUrl, withActivationHeaders({}, { requireToken: true }));
 }
 
@@ -178,7 +194,11 @@ function MainApp({ backendUrl, onUnauthorized }) {
       <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#f0f0f0', borderRadius: '4px' }}>
         <h2>Available Apps</h2>
         <ul>
-          <li><a href={backendUrl}>Transmittal Builder</a></li>
+          {Object.entries(AVAILABLE_APPS).map(([id, app]) => (
+            <li key={id}>
+              <a href={app.url}>{app.label}</a>
+            </li>
+          ))}
         </ul>
         <button
           onClick={handleProtectedAccessCheck}
