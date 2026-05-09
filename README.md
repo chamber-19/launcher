@@ -1,40 +1,124 @@
-# Shopvac
+# Launcher
 
-A Chamber 19 desktop tool shell, built on
-[`@chamber-19/desktop-toolkit`](https://github.com/chamber-19/desktop-toolkit).
+The universal desktop shell for Chamber 19 desktop tools. Built on
+[`@chamber-19/desktop-toolkit`](https://github.com/chamber-19/desktop-toolkit)
+and Tauri v2 / React / Vite.
 
-**Components:**
+**What it does:**
 
-- **`frontend/`** — Tauri v2 / React / Vite desktop app with splash, updater,
-  and main window pre-wired via `desktop-toolkit`.
+- **Activation gate** — Office IP gating, PIN validation, hardware fingerprinting (via `desktop-toolkit` API)
+- **App routing** — Detects configured backend services and launches them
+- **Desktop integration** — Windows registry, Start menu shortcuts, file associations
+- **Updater** — Manages installer downloads, binary signing, rollback
+- **Multi-tool support** — One launcher .exe for all Chamber 19 apps; no per-app installers
 
-Currently a tool shell only — AutoCAD-side workflows handled by Autodesk's
-first-party Assistant in AutoCAD 2027+.
+**Architecture:**
+
+```text
+┌─────────────────────────────────────────┐
+│ launcher (Tauri + React)                │
+│ ├─ Activation gate                      │
+│ ├─ App router                           │
+│ ├─ Desktop integration                  │
+│ └─ Updater                              │
+└──────────────┬──────────────────────────┘
+               │
+        ┌──────┴──────┐
+        │             │
+   ┌────▼───┐  ┌─────▼──────────┐
+   │desktop-│  │[Backend App]   │
+   │toolkit │  │(HTTP service)  │
+   │(auth)  │  │e.g. transmittal│
+   └────────┘  └────────────────┘
+```
+
+Each backend app registers an HTTP endpoint; launcher routes users to it after
+activation succeeds.
 
 ---
 
 ## Repository layout
 
 ```text
-shopvac/
-├── frontend/                   Tauri desktop app
-│   ├── src/                    React source
+launcher/
+├── frontend/                   Tauri + React desktop app
+│   ├── src/                    React components (ActivationGate, App, etc.)
 │   ├── src-tauri/              Rust + Tauri config
+│   │   └── src/
+│   │       ├── main.rs         App init, sidecar launch
+│   │       ├── lib.rs          Tauri setup
+│   │       ├── sidecar.rs      Sidecar lifecycle
+│   │       └── activation.rs   Activation commands (hardware, PIN, token)
 │   ├── package.json
 │   └── vite.config.js
-├── scripts/                    Release automation
+├── scripts/                    Release automation, version bumps
 ├── docs/                       Reference documentation
 ├── .github/
-│   ├── copilot-instructions.md
-│   ├── copilot/mcp-config.json
-│   ├── dependabot.yml
-│   └── workflows/
-│       ├── copilot-setup-steps.yml
-│       └── release.yml
-└── .vscode/
-    ├── mcp.json
-    └── settings.json
+│   ├── copilot-instructions.md Agent guidance
+│   ├── workflows/
+│   │   ├── release.yml         Signed binary release
+│   │   └── toolkit-pin-check.yml Dependency validation
+├── CHANGELOG.md                Activation + routing changes
+├── RELEASING.md                Release procedures
+└── TROUBLESHOOTING.md          Diagnostic playbook
 ```
+
+---
+
+## Configuration
+
+Launcher discovers and routes to backend apps via configuration. Each tool
+registers as an HTTP endpoint:
+
+```json
+{
+  "apps": [
+    {
+      "id": "transmittal-builder",
+      "name": "Transmittal Builder",
+      "sidecar": "transmittal-backend",
+      "port": 8001
+    }
+  ],
+  "activation": {
+    "office_ip_ranges": "203.0.113.0/24,198.51.100.0/24",
+    "token_expiry_days": 14
+  }
+}
+```
+
+When a user activates:
+
+1. Launcher collects hardware (hostname + Windows SID + MAC → SHA256 hash)
+2. Calls `desktop-toolkit` activation API: `/enrollment/request-pin` (office IP check)
+3. User enters PIN
+4. Launcher calls `/enrollment/activate` → receives signed token
+5. Token stored in browser localStorage (encrypted by OS DPAPI on Windows)
+6. Launcher routes to registered backend app on success
+
+---
+
+## Activation & Security
+
+Activation is **centralized in `desktop-toolkit`**; launcher is just the client:
+
+- **Office IP gating** — PIN requests only from configured IP ranges
+- **Hardware binding** — Token tied to machine (hostname + SID + MAC)
+- **Token signing** — HMAC-SHA256 prevents forgery
+- **Single-use PINs** — Burned after activation
+- **14-day expiry** — Tokens eventually expire; offline grace window
+- **Admin revocation** — Can revoke machines server-side
+
+Launcher request behavior for backend APIs:
+
+- Backend calls are wrapped with `withActivationHeaders()` and send
+  `Authorization: Bearer <activation_token>` when a token is present.
+- In activation-enforced builds (`LAUNCHER_ENFORCE_PIN=1`), launcher startup
+  fails fast if no activation token exists.
+- A backend `401` response is treated as an auth revocation/expiry signal:
+  launcher clears local activation state and returns the user to activation.
+
+See [`desktop-toolkit` activation docs](https://github.com/chamber-19/desktop-toolkit) for API details.
 
 ---
 
@@ -74,6 +158,9 @@ npm install
 npm run desktop      # = tauri dev
 ```
 
+Tauri dev server watches for changes and hot-reloads the frontend. Rust changes
+require a restart.
+
 ---
 
 ## Build
@@ -85,17 +172,18 @@ npm run desktop:build   # = tauri build
 
 The NSIS installer is placed in `frontend/src-tauri/target/release/bundle/nsis/`.
 
+Binaries are signed as part of the release workflow.
+
 ---
 
 ## Reference
 
 | Document | Purpose |
 |----------|---------|
-| [RELEASING.md](./RELEASING.md) | How to cut a release |
-| [CONTRIBUTING.md](./CONTRIBUTING.md) | Local dev workflow and branching model |
+| [RELEASING.md](./RELEASING.md) | How to cut a release; signing, updater config |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | Local dev workflow and branching |
 | [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) | Diagnostic playbook |
-| [MIGRATION.md](./MIGRATION.md) | Version upgrade notes |
-| [docs/mcp.md](./docs/mcp.md) | MCP server catalogue |
+| [CHANGELOG.md](./CHANGELOG.md) | Activation, routing, updater changes |
 | [docs/AUTO_UPDATER.md](./docs/AUTO_UPDATER.md) | Auto-updater contract |
 
 ---

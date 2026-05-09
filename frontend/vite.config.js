@@ -39,6 +39,10 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(
       process.env.npm_package_version || PKG_VERSION
     ),
+    // PIN enforcement is opt-in so local development is never blocked.
+    __ENFORCE_PIN_ACTIVATION__: JSON.stringify(
+      process.env.LAUNCHER_ENFORCE_PIN === "1"
+    ),
   },
 
   build: {
