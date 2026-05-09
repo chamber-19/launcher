@@ -1,29 +1,42 @@
 # Copilot Instructions — Launcher
 
 > **Repo:** `chamber-19/launcher`
-> **Role:** Tauri desktop shell for installing, updating, and launching Chamber 19 tools.
+> **Role:** Universal Tauri desktop shell for Chamber 19 tools.
+> Handles: App activation, routing, updates, and desktop integration.
 
 Use the shared Chamber 19 conventions from `chamber-19/.github` as reference
 guidance, but treat this file as the repo-specific source of truth.
 
 ## Current Shape
 
-- The app lives in `frontend/` today. Do **not** use `shell/` paths in this repo
-  unless a dedicated rename PR actually performs that migration.
-- The product still contains historical `Shopvac` names. Do not rebrand product,
-  package, bundle identifier, or docs opportunistically.
-- Stack: Tauri v2, React, Vite, Rust, NSIS, `@chamber-19/desktop-toolkit`.
+- `frontend/` contains the Tauri shell, React UI, and activation gate.
+- Stack: Tauri v2, React, Vite, Rust, `@chamber-19/desktop-toolkit`.
+- Activation flow: office IP gating → PIN request → hardware fingerprinting → token storage.
+- App routing: launcher detects activation, shows ActivationGate if needed, then routes to configured backends.
+- All backends are HTTP services running on localhost or remote hosts.
 
 ## Build And Test
 
 ```text
 cd frontend
+
+# GitHub Packages auth required
+export NODE_AUTH_TOKEN=ghp_yourTokenHere
+
 npm ci
 npm run build
 
-cd frontend/src-tauri
+cd src-tauri
 cargo check
 ```
+
+## Activation Service
+
+- PIN generation and validation: `desktop-toolkit` FastAPI service
+- Office IP gating: configured via `ACTIVATION_OFFICE_IP_RANGES` env var
+- Hardware fingerprinting: Tauri Rust commands in `src-tauri/src/activation.rs`
+- Token storage: Windows Credential Manager (DPAPI-encrypted)
+- Token signing: HMAC-SHA256 with hardware binding
 
 ## Dependency Contract
 
@@ -35,10 +48,11 @@ cargo check
 
 ## Review-Critical Rules
 
-- No remote plugin catalog before a future catalog feature is explicitly scoped.
-- No runtime IPC/control path into AutoCAD; launcher manages files and startup
-  registration only.
-- No silent background update timers in the current line.
+- Activation logic is **not** duplicated here; it consumes `desktop-toolkit` APIs.
+- Do not add app-specific business logic to launcher; route via HTTP to backends.
+- All backend URLs are configured (not hardcoded) and can be local or remote.
+- No remote plugin catalog before explicit feature scope.
+- No runtime IPC/control into AutoCAD; launcher manages files and startup only.
 - GitHub Releases are the source for released artifacts.
 - Update `CHANGELOG.md`, `RELEASING.md`, `TROUBLESHOOTING.md`, or `README.md`
   whenever behavior, release flow, or user-facing docs change.
