@@ -1,7 +1,7 @@
 // Activation commands for launcher
 // Wraps desktop-toolkit activation logic
-
-use std::collections::HashMap;
+#[cfg(target_os = "windows")]
+use std::process::Command;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct HardwareFingerprint {
@@ -22,10 +22,10 @@ pub fn get_hardware_fingerprint() -> Result<HardwareFingerprint, String> {
         .to_string();
 
     // Get Windows SID (using WinAPI)
-    let sid = get_windows_sid().unwrap_or_else(|_| "unknown".to_string());
+    let sid = get_windows_sid()?;
 
     // Get primary MAC address
-    let mac_address = get_primary_mac_address().unwrap_or_else(|_| "unknown".to_string());
+    let mac_address = get_primary_mac_address()?;
 
     // Hash the combined fingerprint
     use sha2::{Sha256, Digest};
@@ -42,7 +42,7 @@ pub fn get_hardware_fingerprint() -> Result<HardwareFingerprint, String> {
 
 /// Request activation PIN from server (office network only)
 #[tauri::command]
-async fn request_activation_pin(backend_url: String) -> Result<String, String> {
+pub async fn request_activation_pin(backend_url: String) -> Result<String, String> {
     let client = reqwest::Client::new();
     
     let response = client
@@ -67,7 +67,7 @@ async fn request_activation_pin(backend_url: String) -> Result<String, String> {
 
 /// Activate machine with PIN + hardware fingerprint
 #[tauri::command]
-async fn activate_machine(
+pub async fn activate_machine(
     backend_url: String,
     pin: String,
     hardware_fingerprint: String,
@@ -102,7 +102,7 @@ async fn activate_machine(
 
 /// Validate existing activation token
 #[tauri::command]
-async fn validate_activation_token(
+pub async fn validate_activation_token(
     backend_url: String,
     hardware_fingerprint: String,
     token: String,
@@ -126,9 +126,34 @@ async fn validate_activation_token(
 
 #[cfg(target_os = "windows")]
 fn get_windows_sid() -> Result<String, String> {
-    // This would require Windows API calls via winapi crate
-    // Simplified for now; in production use proper WinAPI bindings
-    Ok("sid-placeholder".to_string())
+    // `whoami /user /fo csv /nh` emits: "USERNAME","SID"
+    let output = Command::new("whoami")
+        .args(["/user", "/fo", "csv", "/nh"])
+        .output()
+        .map_err(|e| format!("Failed to run whoami: {e}"))?;
+
+    if !output.status.success() {
+        return Err("Unable to read Windows SID".to_string());
+    }
+
+    let stdout = String::from_utf8(output.stdout)
+        .map_err(|e| format!("Invalid UTF-8 from whoami output: {e}"))?;
+    let line = stdout
+        .lines()
+        .find(|l| !l.trim().is_empty())
+        .ok_or("No SID output returned")?;
+
+    let parts: Vec<&str> = line.split(',').collect();
+    if parts.len() < 2 {
+        return Err("Unexpected whoami CSV format".to_string());
+    }
+
+    let sid = parts[1].trim().trim_matches('"').to_string();
+    if sid.is_empty() {
+        return Err("Resolved SID was empty".to_string());
+    }
+
+    Ok(sid)
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -138,9 +163,37 @@ fn get_windows_sid() -> Result<String, String> {
 
 #[cfg(target_os = "windows")]
 fn get_primary_mac_address() -> Result<String, String> {
-    // This would require network interface enumeration
-    // Could use pnet or similar crate
-    Ok("mac-placeholder".to_string())
+    // `getmac /fo csv /nh` emits rows: "MAC","Transport Name","Media State"
+    let output = Command::new("getmac")
+        .args(["/fo", "csv", "/nh"])
+        .output()
+        .map_err(|e| format!("Failed to run getmac: {e}"))?;
+
+    if !output.status.success() {
+        return Err("Unable to read MAC address".to_string());
+    }
+
+    let stdout = String::from_utf8(output.stdout)
+        .map_err(|e| format!("Invalid UTF-8 from getmac output: {e}"))?;
+
+    for line in stdout.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+
+        let parts: Vec<&str> = trimmed.split(',').collect();
+        if parts.is_empty() {
+            continue;
+        }
+
+        let mac = parts[0].trim().trim_matches('"').to_string();
+        if !mac.is_empty() && mac != "N/A" {
+            return Ok(mac);
+        }
+    }
+
+    Err("No valid MAC address found".to_string())
 }
 
 #[cfg(not(target_os = "windows"))]

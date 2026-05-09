@@ -26,7 +26,7 @@
 cd frontend
 
 # GitHub Packages auth required
-export NODE_AUTH_TOKEN=ghp_yourTokenHere
+export NODE_AUTH_TOKEN=<YOUR_GITHUB_PACKAGES_TOKEN>
 
 npm ci
 npm run build
@@ -40,7 +40,7 @@ cargo check
 - PIN generation and validation: `desktop-toolkit` FastAPI service
 - Office IP gating: configured via `ACTIVATION_OFFICE_IP_RANGES` env var
 - Hardware fingerprinting: Tauri Rust commands in `src-tauri/src/activation.rs`
-- Token storage: Windows Credential Manager (DPAPI-encrypted)
+- Token storage: browser localStorage in current launcher implementation
 - Token signing: HMAC-SHA256 with hardware binding
 
 ## Dependency Contract
