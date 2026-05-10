@@ -25,15 +25,29 @@ and Tauri v2 / React / Vite.
                │
         ┌──────┴──────┐
         │             │
-   ┌────▼───┐  ┌─────▼──────────┐
-   │desktop-│  │[Backend App]   │
-   │toolkit │  │(HTTP service)  │
-   │(auth)  │  │e.g. transmittal│
-   └────────┘  └────────────────┘
+   ┌────▼───┐  ┌─────▼──────────────────────┐
+   │desktop-│  │Multiple Backend Services   │
+   │toolkit │  │(HTTP services)             │
+   │(auth)  │  │├─ Transmittal Builder      │
+   └────────┘  │├─ Batch Find & Replace     │
+                │└─ Drawing List Manager     │
+                └────────────────────────────┘
+                
+  ┌──────────────────────────┐
+  │ Block Library (separate) │
+  │ (Tauri + Three.js)       │
+  │ Standalone desktop app   │
+  └──────────────────────────┘
 ```
 
-Each backend app registers an HTTP endpoint; launcher routes users to it after
-activation succeeds.
+Launcher detects configured backend services and routes users to them after
+activation succeeds. Each routed backend is a stateless HTTP service.
+
+**Block Library** is a separate desktop application (Tauri + React + Three.js)
+that handles 3D DXF viewing with GPU acceleration. It is **not** routed through
+launcher's HTTP mechanism because real-time 3D rendering requires client-side
+WebGL context and GPU memory management. Block Library is installed and launched
+independently.
 
 ---
 
@@ -65,15 +79,25 @@ launcher/
 
 ## Configuration
 
-Current launcher frontend configuration is environment-based:
+Launcher frontend configuration is environment-based. Backend services are
+discovered via environment variables:
 
-```text
-VITE_BACKEND_URL=http://127.0.0.1:8000
-LAUNCHER_ENFORCE_PIN=1
+```bash
+# Backend URLs (required; defaults shown)
+VITE_BATCH_FNR_URL=http://127.0.0.1:8000
+VITE_DRAWING_LIST_MANAGER_URL=http://127.0.0.1:8002
+VITE_TRANSMITTAL_BUILDER_URL=http://127.0.0.1:8001
+
+# Activation enforcement (optional; defaults to permissive)
+LAUNCHER_ENFORCE_PIN=1  # Fail startup if no activation token
 ```
 
-- `VITE_BACKEND_URL` sets the backend base URL shown/launched in the UI.
-- `LAUNCHER_ENFORCE_PIN=1` enables startup fail-fast when no activation token exists.
+- `VITE_BATCH_FNR_URL` — URL for Batch Find & Replace backend service
+- `VITE_DRAWING_LIST_MANAGER_URL` — URL for Drawing List Manager backend service
+- `VITE_TRANSMITTAL_BUILDER_URL` — URL for Transmittal Builder backend service
+- `LAUNCHER_ENFORCE_PIN=1` enables startup fail-fast when no activation token exists
+- Additional backend URLs can be added by updating environment config and
+  `frontend/src/App.jsx` `AVAILABLE_APPS` table
 
 When a user activates:
 
