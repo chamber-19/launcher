@@ -1,6 +1,6 @@
 # Migration Guide
 
-Shopvac is at v0.1.0 — no migrations exist yet.
+Chamber19 Launcher is at v0.1.0 — no migrations exist yet.
 
 This file will document breaking changes and upgrade instructions as they arise.
 Each section covers one version boundary.

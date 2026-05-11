@@ -1,3 +1,3 @@
 fn main() {
-    shopvac_lib::run();
+    launcher_lib::run();
 }

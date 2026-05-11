@@ -1,0 +1,117 @@
+name: Cut Release
+
+# Manually trigger a launcher release from the GitHub Actions UI.
+# Bumps the version, commits to main, pushes a tag, and release.yml fires.
+#
+# Usage:
+#   gh workflow run cut-release.yml --field bump=patch
+#   gh workflow run cut-release.yml --field version=1.0.0
+#
+# Prerequisites:
+#   - RELEASE_BOT_PAT must be stored as a secret with `repo` scope.
+#     (Same PAT used by backend-released.yml.)
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump type (ignored if version is set)'
+        required: false
+        type: choice
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+      version:
+        description: 'Explicit version, e.g. "1.0.0" (overrides bump if provided)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  cut-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.RELEASE_BOT_PAT }}
+          fetch-depth: 0
+
+      - name: Resolve new version
+        id: resolve
+        shell: python
+        env:
+          BUMP: ${{ inputs.bump }}
+          EXPLICIT_VERSION: ${{ inputs.version }}
+        run: |
+          import json, os, re
+
+          tauri_conf = "frontend/src-tauri/tauri.conf.json"
+          with open(tauri_conf) as f:
+              tauri = json.load(f)
+          current = tauri["version"]
+          major, minor, patch = map(int, current.split("."))
+
+          explicit = os.environ.get("EXPLICIT_VERSION", "").strip()
+          if explicit:
+              new_ver = explicit.lstrip("v")
+          else:
+              bump = os.environ.get("BUMP", "patch")
+              if bump == "major":
+                  new_ver = f"{major + 1}.0.0"
+              elif bump == "minor":
+                  new_ver = f"{major}.{minor + 1}.0"
+              else:
+                  new_ver = f"{major}.{minor}.{patch + 1}"
+
+          if new_ver == current:
+              print(f"::error::New version {new_ver} is the same as current {current}")
+              raise SystemExit(1)
+
+          # Update all three version files
+          tauri["version"] = new_ver
+          with open(tauri_conf, "w") as f:
+              json.dump(tauri, f, indent=2)
+              f.write("\n")
+
+          pkg_path = "frontend/package.json"
+          with open(pkg_path) as f:
+              pkg = json.load(f)
+          pkg["version"] = new_ver
+          with open(pkg_path, "w") as f:
+              json.dump(pkg, f, indent=2)
+              f.write("\n")
+
+          cargo_path = "frontend/src-tauri/Cargo.toml"
+          cargo = open(cargo_path).read()
+          cargo = re.sub(
+              r'^(version\s*=\s*)"[^"]+"',
+              f'\\1"{new_ver}"',
+              cargo, count=1, flags=re.MULTILINE
+          )
+          open(cargo_path, "w").write(cargo)
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"new_version={new_ver}\n")
+              f.write(f"old_version={current}\n")
+
+          print(f"Version: {current} → {new_ver}")
+
+      - name: Commit and tag
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add \
+            frontend/src-tauri/tauri.conf.json \
+            frontend/package.json \
+            frontend/src-tauri/Cargo.toml
+          git commit -m "chore: release v${{ steps.resolve.outputs.new_version }}"
+          git tag "v${{ steps.resolve.outputs.new_version }}"
+          git remote set-url origin "https://x-access-token:${{ secrets.RELEASE_BOT_PAT }}@github.com/chamber-19/launcher.git"
+          git push origin main
+          git push origin "v${{ steps.resolve.outputs.new_version }}"

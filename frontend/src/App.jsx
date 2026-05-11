@@ -7,6 +7,115 @@ import {
   withActivationHeaders,
 } from './activationAuth';
 
+// ── Update gate ───────────────────────────────────────────────────────────────
+
+function UpdateGate({ children }) {
+  const [state, setState] = useState('checking'); // checking | current | update-available | applying | error
+  const [updateInfo, setUpdateInfo] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
+
+  useEffect(() => {
+    invoke('check_launcher_update')
+      .then((info) => {
+        if (info.update_available) {
+          setUpdateInfo(info);
+          setState('update-available');
+        } else {
+          setState('current');
+        }
+      })
+      .catch((err) => {
+        // Network failure — let the app open rather than blocking
+        console.warn('Update check failed, continuing:', err);
+        setState('current');
+      });
+  }, []);
+
+  async function handleInstall() {
+    setState('applying');
+    try {
+      await invoke('apply_launcher_update', { downloadUrl: updateInfo.download_url });
+    } catch (err) {
+      setErrorMsg(String(err));
+      setState('error');
+    }
+  }
+
+  if (state === 'checking') {
+    return (
+      <div style={styles.center}>
+        <p style={styles.muted}>Checking for updates…</p>
+      </div>
+    );
+  }
+
+  if (state === 'update-available') {
+    return (
+      <div style={styles.updateScreen}>
+        <h2 style={styles.heading}>Update available</h2>
+        <p style={styles.meta}>
+          v{updateInfo.current_version} → v{updateInfo.latest_version}
+        </p>
+        {updateInfo.notes && (
+          <pre style={styles.notes}>{updateInfo.notes}</pre>
+        )}
+        <button style={styles.button} onClick={handleInstall}>
+          Install and restart
+        </button>
+      </div>
+    );
+  }
+
+  if (state === 'applying') {
+    return (
+      <div style={styles.center}>
+        <p style={styles.muted}>Downloading update…</p>
+      </div>
+    );
+  }
+
+  if (state === 'error') {
+    return (
+      <div style={styles.center}>
+        <p style={{ color: '#B85C5C' }}>Update failed: {errorMsg}</p>
+        <p style={styles.muted}>Close and reopen the app to try again.</p>
+      </div>
+    );
+  }
+
+  return children;
+}
+
+const styles = {
+  center: {
+    display: 'flex', flexDirection: 'column',
+    justifyContent: 'center', alignItems: 'center', height: '100vh',
+    background: '#1C1B19', color: '#e8e4dc',
+    fontFamily: 'DM Sans, system-ui, sans-serif',
+  },
+  updateScreen: {
+    display: 'flex', flexDirection: 'column', gap: 16,
+    justifyContent: 'center', alignItems: 'flex-start',
+    height: '100vh', padding: '0 48px',
+    background: '#1C1B19', color: '#e8e4dc',
+    fontFamily: 'DM Sans, system-ui, sans-serif',
+  },
+  heading: { margin: 0, fontSize: 22, fontWeight: 600 },
+  meta: { margin: 0, color: '#C4884D', fontFamily: 'JetBrains Mono, monospace', fontSize: 13 },
+  notes: {
+    margin: 0, maxWidth: 520, maxHeight: 200, overflow: 'auto',
+    fontSize: 12, color: '#a09a90', whiteSpace: 'pre-wrap',
+    background: '#151412', padding: 12, borderRadius: 4,
+  },
+  button: {
+    padding: '10px 20px', border: 'none', borderRadius: 4,
+    background: '#C4884D', color: '#1C1B19',
+    fontFamily: 'DM Sans, system-ui, sans-serif',
+    fontSize: 14, fontWeight: 600, cursor: 'pointer',
+  },
+  muted: { color: '#6b645c', margin: 0 },
+};
+
 const DEFAULT_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
 
 // Available apps with their backend URLs
@@ -37,6 +146,14 @@ async function probeProtectedBackend(backendUrl, probeEndpoint = '/api/scan-proj
 }
 
 export default function App() {
+  return (
+    <UpdateGate>
+      <AppInner />
+    </UpdateGate>
+  );
+}
+
+function AppInner() {
   const [activated, setActivated] = useState(null);
   const [backendUrl] = useState(DEFAULT_BACKEND_URL);
 

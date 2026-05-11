@@ -1,0 +1,11 @@
+{
+  "backends": [
+    {
+      "id": "transmittal-builder",
+      "repo": "chamber-19/Transmittal-Builder",
+      "exe_name": "transmittal-backend.exe",
+      "port": 8000,
+      "pinned_version": "4.0.2"
+    }
+  ]
+}
