@@ -1,0 +1,132 @@
+name: Backend Released
+
+# Triggered by a `repository_dispatch` event sent from a backend repo's
+# release workflow when a new version is published.
+#
+# Expected payload:
+#   client_payload.backend_id  — matches the "id" field in backends.json
+#   client_payload.version     — bare semver string, e.g. "4.0.3"
+#
+# What this does:
+#   1. Updates the pinned_version for the backend in backends.json.
+#   2. Bumps the launcher patch version in all three version files.
+#   3. Commits to main and pushes a tag.
+#   4. The tag push triggers release.yml which builds and publishes the installer.
+#
+# Prerequisites:
+#   - The sending repo must have a PAT (LAUNCHER_DISPATCH_TOKEN) with
+#     `repo` scope on this repository stored as a secret.
+#   - RELEASE_BOT_PAT must be stored as a secret with `repo` scope.
+#     GitHub blocks GITHUB_TOKEN-pushed tags from triggering other workflows;
+#     a PAT bypasses this restriction so release.yml fires on the new tag.
+
+on:
+  repository_dispatch:
+    types: [backend-released]
+
+permissions:
+  contents: write
+
+jobs:
+  auto-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.RELEASE_BOT_PAT }}
+          fetch-depth: 0
+
+      - name: Update backends.json and bump launcher version
+        id: bump
+        shell: python
+        env:
+          BACKEND_ID: ${{ github.event.client_payload.backend_id }}
+          NEW_BACKEND_VERSION: ${{ github.event.client_payload.version }}
+        run: |
+          import json, os, re
+
+          backend_id = os.environ["BACKEND_ID"]
+          new_backend_ver = os.environ["NEW_BACKEND_VERSION"].lstrip("v")
+
+          # ── 1. Update backends.json ──────────────────────────────────────
+          backends_path = "frontend/src-tauri/backends.json"
+          with open(backends_path) as f:
+              config = json.load(f)
+
+          old_backend_ver = None
+          for backend in config["backends"]:
+              if backend["id"] == backend_id:
+                  old_backend_ver = backend["pinned_version"]
+                  backend["pinned_version"] = new_backend_ver
+                  break
+
+          if old_backend_ver is None:
+              print(f"::error::Backend id '{backend_id}' not found in backends.json")
+              raise SystemExit(1)
+
+          if old_backend_ver == new_backend_ver:
+              print(f"Already pinned at {new_backend_ver}, nothing to do.")
+              with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+                  f.write("skip=true\n")
+              raise SystemExit(0)
+
+          with open(backends_path, "w") as f:
+              json.dump(config, f, indent=2)
+              f.write("\n")
+
+          # ── 2. Bump launcher patch version ───────────────────────────────
+          tauri_conf = "frontend/src-tauri/tauri.conf.json"
+          with open(tauri_conf) as f:
+              tauri = json.load(f)
+          current = tauri["version"]
+          major, minor, patch = map(int, current.split("."))
+          new_launcher_ver = f"{major}.{minor}.{patch + 1}"
+          tauri["version"] = new_launcher_ver
+          with open(tauri_conf, "w") as f:
+              json.dump(tauri, f, indent=2)
+              f.write("\n")
+
+          pkg_path = "frontend/package.json"
+          with open(pkg_path) as f:
+              pkg = json.load(f)
+          pkg["version"] = new_launcher_ver
+          with open(pkg_path, "w") as f:
+              json.dump(pkg, f, indent=2)
+              f.write("\n")
+
+          cargo_path = "frontend/src-tauri/Cargo.toml"
+          cargo = open(cargo_path).read()
+          cargo = re.sub(
+              r'^(version\s*=\s*)"[^"]+"',
+              f'\\1"{new_launcher_ver}"',
+              cargo, count=1, flags=re.MULTILINE
+          )
+          open(cargo_path, "w").write(cargo)
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"skip=false\n")
+              f.write(f"launcher_version={new_launcher_ver}\n")
+              f.write(f"backend_id={backend_id}\n")
+              f.write(f"old_backend_ver={old_backend_ver}\n")
+              f.write(f"new_backend_ver={new_backend_ver}\n")
+
+          print(f"Backend: {backend_id} {old_backend_ver} → {new_backend_ver}")
+          print(f"Launcher: {current} → {new_launcher_ver}")
+
+      - name: Commit and tag
+        if: steps.bump.outputs.skip != 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add \
+            frontend/src-tauri/backends.json \
+            frontend/src-tauri/tauri.conf.json \
+            frontend/package.json \
+            frontend/src-tauri/Cargo.toml
+          git commit -m "chore: release v${{ steps.bump.outputs.launcher_version }} (bump ${{ steps.bump.outputs.backend_id }} → ${{ steps.bump.outputs.new_backend_ver }})"
+          git tag "v${{ steps.bump.outputs.launcher_version }}"
+          git remote set-url origin "https://x-access-token:${{ secrets.RELEASE_BOT_PAT }}@github.com/chamber-19/launcher.git"
+          git push origin main
+          git push origin "v${{ steps.bump.outputs.launcher_version }}"

@@ -5,21 +5,18 @@ name: Release
 # Prerequisites:
 #   - GITHUB_TOKEN (auto-provided) with `packages: read` permission is the
 #     only auth needed — no classic PAT required.
-#   - The `chamber-19/shopvac` repository must be granted read access under
+#   - The `chamber-19/launcher` repository must be granted read access under
 #     the `@chamber-19/desktop-toolkit` package's "Manage Actions access"
 #     settings so the workflow GITHUB_TOKEN can install the npm package from
 #     GitHub Packages.
 #
 # Artifacts produced:
-#   - Shopvac_<version>_x64-setup.exe  (NSIS installer)
+#   - Chamber19.Launcher_<version>_x64-setup.exe  (NSIS installer)
 #     Note: softprops/action-gh-release sanitises spaces to dots on upload,
 #     so the on-disk name differs from the tauri.conf.json productName.
-#   - latest.json                       (update manifest)
 #
-# TODO (before v1.0): flesh out this workflow using transmittal-builder's
-# .github/workflows/release.yml as the model. The structure below is a
-# minimal working skeleton that covers the Tauri build + publish-to-drive
-# flow without the Python sidecar steps (no Python backend in v0.1).
+# Update distribution: the launcher checks this GitHub Release directly at
+# startup via the Releases API — no shared drive or latest.json manifest needed.
 
 on:
   push:
@@ -133,22 +130,14 @@ jobs:
           Write-Host "Installer: $($exe.FullName)"
         shell: pwsh
 
-      # ── 8. Generate latest.json ──────────────────────────────────────────
-      - name: Generate latest.json
-        run: node scripts/generate-latest-json.mjs
-        env:
-          INSTALLER_NAME: ${{ steps.find_installer.outputs.name }}
-          TAG_NAME:       ${{ github.ref_name }}
-
-      # ── 9. Create GitHub Release ─────────────────────────────────────────
+      # ── 8. Create GitHub Release ─────────────────────────────────────────
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name:     "Shopvac ${{ github.ref_name }}"
+          name:     "Chamber19 Launcher ${{ github.ref_name }}"
           fail_on_unmatched_files: true
           files: |
             ${{ steps.find_installer.outputs.path }}
-            latest.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

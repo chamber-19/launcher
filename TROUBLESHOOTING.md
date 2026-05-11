@@ -1,7 +1,7 @@
-# Shopvac — Troubleshooting
+# Chamber19 Launcher — Troubleshooting
 
-This document covers common issues encountered when installing, running, or
-building Shopvac.
+This document covers common issues encountered when installing, running,
+updating, or building Chamber19 Launcher.
 
 ---
 
@@ -27,24 +27,23 @@ exactly where `signtool` slots in. See `RELEASING.md §1 — Code signing`.
 
 ---
 
-## 2. "Cannot reach shared drive" on launch
+## 2. Update check fails or loops
 
-**Symptom:** The splash screen appears, then the app shows an error dialog and
-exits without opening the main window.
+**Symptom:** The splash screen appears and the app is stuck on "Checking for
+updates…" or the update prompt appears every launch despite installing.
 
 **Fix:**
 
-1. Ensure **Google Drive for Desktop** is running and signed in.
-2. Verify the shared drive is mounted at `G:` in File Explorer.
-3. If the drive letter changed, edit
-   `%APPDATA%\Shopvac\update-source.json` to point at the new path.
-4. If you are on VPN, ensure the VPN tunnel is connected before launching.
+1. Check internet connectivity — the update check calls the GitHub Releases API.
+2. Verify the GitHub Release for the latest tag has an NSIS installer asset
+   (name ending `_x64-setup.exe`). If the asset is missing, the check returns
+   no update and the app opens normally.
+3. If the installer fails to launch, check `%TEMP%\chamber19-launcher-update.exe`
+   exists and is not corrupted (zero bytes). Delete it and relaunch to retry.
 
-**Dev/testing override:**
-
-```powershell
-$env:SHOPVAC_UPDATE_PATH = "C:\tmp\fake-drive"
-```
+**Dev/testing:** To skip the update check during development, the update gate in
+`App.jsx` fails open — if `check_launcher_update` returns an error the app opens
+normally.
 
 ---
 
@@ -87,25 +86,19 @@ requires authentication even for public packages.
 
 ---
 
-## 5. latest.json parse error / update not triggering
+## 5. Update prompt not appearing despite new GitHub Release
 
-**Symptom:** App opens normally even though a newer version exists on the
-shared drive, OR the app update dialog shows garbled version text.
+**Symptom:** App opens normally even though a newer version tag exists on GitHub.
 
 **Fix:**
 
-1. Validate the file manually:
-
-   ```powershell
-   Get-Content "G:\Shared drives\R3P RESOURCES\APPS\Shopvac\latest.json" | ConvertFrom-Json
-   ```
-
-2. Ensure `version` is a bare semver string, e.g. `"0.2.0"` (no `v` prefix).
-3. If the file is missing, re-run:
-
-   ```powershell
-   .\scripts\publish-to-drive.ps1 -Tag v0.2.0
-   ```
+1. Confirm the GitHub Release has an NSIS installer asset. The update check
+   looks for an asset named `*_x64-setup.exe` or `*-setup.exe`. If the release
+   was created without the asset (e.g. the CI build failed), no update is offered.
+2. Confirm the release tag is not a pre-release. The Releases API `/latest`
+   endpoint returns the most recent non-pre-release, non-draft release.
+3. Check that the tag's version string is newer than the running app version
+   (strip the `v` prefix: `v0.2.0` → `0.2.0`, compared by semver).
 
 ---
 
@@ -115,7 +108,7 @@ shared drive, OR the app update dialog shows garbled version text.
 against transitive crates pulled in by Tauri.
 
 **Cause:** Both crates come in via `gtk-rs 0.18 → tao → tauri-runtime-wry`,
-and only compile when targeting **Linux/GTK**. Shopvac ships a Windows-only
+and only compile when targeting **Linux/GTK**. Chamber19 Launcher ships a Windows-only
 NSIS installer, so the vulnerable code is never built into the binary we
 distribute.
 
@@ -135,16 +128,13 @@ distribute.
 
 > **Historical archive:** the following is a summary of a production incident
 > in `chamber-19/transmittal-builder` v6.2.2. It is included here as a
-> cautionary reference for future Shopvac releases — not because the same code
-> exists in Shopvac.
+> cautionary reference for future Chamber19 Launcher releases — not because the same code
+> exists in Chamber19 Launcher.
 
-In transmittal-builder v6.2.2, `release.yml` and `publish-to-drive.ps1` both
-used `Select-Object -First 1` to locate the installer EXE. When a cached older
-installer appeared first in the file listing, the wrong version was uploaded to
-the GitHub Release. The fix was to use `Select-Object -Last 1` (sorted by
-name, which is filename-order and therefore version-order for Tauri's
-`ProductName_Version_arch-setup.exe` naming convention), and to validate the
-uploaded filename in `generate-latest-json.mjs`.
-
-Shopvac's `publish-to-drive.ps1` already incorporates this fix. If you ever
-need to modify the installer-selection logic, be aware of this failure mode.
+In transmittal-builder v6.2.2, `release.yml` used `Select-Object -First 1` to
+locate the installer EXE. When a cached older installer appeared first in the
+file listing, the wrong version was uploaded to the GitHub Release. The fix was
+to use `Select-Object -Last 1` (sorted by name, which is filename-order and
+therefore version-order for Tauri's `ProductName_Version_arch-setup.exe` naming
+convention). Be aware of this failure mode if you ever modify the
+installer-selection logic in `release.yml`.

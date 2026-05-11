@@ -14,11 +14,12 @@
 
 ## Current Shape
 
-- `frontend/` contains the Tauri shell, React UI, and activation gate.
+- `frontend/` contains the Tauri shell, React UI, activation gate, and update gate.
 - Stack: Tauri v2, React, Vite, Rust, `@chamber-19/desktop-toolkit`.
-- Activation flow: office IP gating → PIN request → hardware fingerprinting → token storage.
-- App routing: launcher detects activation, shows ActivationGate if needed, then routes to configured backends.
-- All backends are HTTP services running on localhost or remote hosts.
+- Startup sequence: `UpdateGate` (GitHub Releases check) → `ActivationGate` (PIN) → `MainApp`
+- Backend management: `backend_manager.rs` downloads and spawns backend exes from GitHub Releases; config in `src-tauri/backends.json` (baked into binary via `include_str!`).
+- Self-update: `launcher_updater.rs` checks `chamber-19/launcher` releases at startup; if newer, downloads NSIS installer and installs silently. No G:\ drive. No `latest.json`. No shared network share.
+- All backends are HTTP services running on localhost.
 
 ## Build And Test
 
@@ -77,6 +78,27 @@ Each backend must respond to:
   - `GET /api/project/recent` for drawing-list-manager
   - `GET /api/scan-projects` for transmittal-builder
 
+## Update Distribution
+
+Distribution is **GitHub Releases only**. There is no shared drive, no `latest.json` manifest, and no `publish-to-drive.ps1`.
+
+- **Launcher self-update:** `launcher_updater.rs` calls `https://api.github.com/repos/chamber-19/launcher/releases/latest` at startup. If a newer version is found, `UpdateGate` in `App.jsx` blocks the UI and forces the user to install before proceeding.
+- **Backend exe updates:** `backend_manager.rs` downloads the pinned backend exe from the matching GitHub Release tag into `%APPDATA%\Chamber19 Launcher\backends\<id>\<version>\`. If the cached version is absent, it downloads on demand.
+
+## Release Automation
+
+Cutting a release requires no local steps beyond adding tokens once:
+
+- **Backend-driven release (automatic):** TB tag → `release.yml` dispatches `backend-released` → `backend-released.yml` bumps `backends.json` + bumps launcher patch version + commits + pushes tag → `release.yml` builds NSIS installer + GitHub Release → users force-updated on next launch.
+- **Manual release:** `gh workflow run cut-release.yml --field bump=patch` (or `minor`/`major`/`version=X.Y.Z`) → same automated chain from the tag push onward.
+
+### Required secrets
+
+| Secret | Stored in | Scope | Purpose |
+|---|---|---|---|
+| `LAUNCHER_DISPATCH_TOKEN` | `Transmittal-Builder` repo | `repo` on `chamber-19/launcher` | TB `release.yml` sends `repository_dispatch` |
+| `RELEASE_BOT_PAT` | `launcher` repo | `repo` on `chamber-19/launcher` | `backend-released.yml` / `cut-release.yml` push tags that trigger `release.yml` (GITHUB\_TOKEN cannot trigger cross-workflow) |
+
 ## Dependency Contract
 
 - Keep `frontend/package.json`, `frontend/src-tauri/Cargo.toml`, and
@@ -89,12 +111,13 @@ Each backend must respond to:
 
 - Activation logic is **not** duplicated here; it consumes `desktop-toolkit` APIs.
 - Do not add app-specific business logic to launcher; route via HTTP to backends.
-- All backend URLs are configured (not hardcoded) and can be local or remote.
+- All backend URLs are configured (not hardcoded).
 - No remote plugin catalog before explicit feature scope.
 - No runtime IPC/control into AutoCAD; launcher manages files and startup only.
-- GitHub Releases are the source for released artifacts.
-- Update `CHANGELOG.md`, `RELEASING.md`, `TROUBLESHOOTING.md`, or `README.md`
-  whenever behavior, release flow, or user-facing docs change.
+- GitHub Releases are the **sole** distribution channel. Never reintroduce G:\ drive paths, `latest.json`, or `publish-to-drive.ps1`.
+- `backends.json` is baked into the binary via `include_str!` — bump the pinned version via `backend-released.yml` (automated) or by editing the file and cutting a release manually.
+- The `RELEASE_BOT_PAT` secret is required for `backend-released.yml` and `cut-release.yml` to push tags that trigger `release.yml`. Do not replace with `GITHUB_TOKEN` — it will silently not trigger the downstream build.
+- Update `CHANGELOG.md`, `RELEASING.md`, `TROUBLESHOOTING.md`, `docs/AUTO_UPDATER.md`, or `copilot-instructions.md` whenever release flow, update behavior, or secret requirements change.
 
 ## Markdown Formatting Standards
 

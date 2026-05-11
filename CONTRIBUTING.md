@@ -1,6 +1,6 @@
-# Contributing to Shopvac
+# Contributing to Chamber19 Launcher
 
-Thank you for contributing to **Chamber-19 Shopvac** — the desktop tool shell
+Thank you for contributing to **Chamber-19 Launcher** — the desktop tool shell
 for Chamber 19.
 
 This document covers the repository architecture, branching model, versioning
@@ -11,14 +11,14 @@ release, see [RELEASING.md](./RELEASING.md).
 
 ## 1. Introduction
 
-`shopvac` contains the Tauri desktop shell:
+`launcher` contains the Tauri desktop shell:
 
 - **`frontend/`** — the Tauri/Vite/React desktop shell, consuming
   [`@chamber-19/desktop-toolkit`](https://github.com/chamber-19/desktop-toolkit)
   from GitHub Packages.
 
 AutoCAD-side workflows are handled by Autodesk's first-party Assistant in
-AutoCAD 2027+; Shopvac no longer ships a managed plugin.
+AutoCAD 2027+; the Launcher no longer ships a managed plugin.
 
 ---
 
@@ -68,19 +68,25 @@ together in the same PR.
 
 ### Desktop app release
 
-1. Open a PR → CI green → merge to `main`.
-2. Bump the version in all three files (see `RELEASING.md §2`).
-3. Tag `vX.Y.Z` and push the tag:
+**Automated path (backend pin bump):** When a backend repo (e.g. Transmittal
+Builder) publishes a release, `backend-released.yml` automatically bumps
+`backends.json`, bumps the launcher patch version, commits to `main`, and
+pushes a tag. The tag triggers `release.yml` which builds and publishes the
+NSIS installer. No manual steps needed.
 
-   ```powershell
-   git tag vX.Y.Z
-   git push && git push --tags
-   ```
+**Manual release (feature work, fixes):**
 
-4. CI builds the Vite frontend and the Tauri installer; a GitHub Release is
-   created with the installer attached.
-5. Smoke-test the built installer locally before running
-   `scripts/publish-to-drive.ps1`.
+```powershell
+gh workflow run cut-release.yml --field bump=patch
+# or: --field bump=minor / --field bump=major / --field version=1.0.0
+```
+
+Or via the GitHub Actions UI: **Actions → Cut Release → Run workflow**.
+
+Either way, once the tag is pushed CI builds the installer and publishes the
+GitHub Release. Users are force-updated on their next launch.
+
+See `RELEASING.md` for the full release flow and secret requirements.
 
 ---
 
@@ -151,4 +157,4 @@ changes code that has documented behaviour, the docs change in the same PR.
 Be respectful and constructive in all interactions.
 
 For questions, bug reports, or feature requests, open an
-[issue on GitHub](https://github.com/chamber-19/shopvac/issues).
+[issue on GitHub](https://github.com/chamber-19/launcher/issues).

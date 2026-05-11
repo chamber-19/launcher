@@ -1,4 +1,4 @@
-# Releasing Shopvac
+# Releasing Chamber19 Launcher
 
 This document covers the full release lifecycle: one-time setup, cutting a
 release, rolling back, and troubleshooting.
@@ -14,23 +14,8 @@ release, rolling back, and troubleshooting.
 | Node.js | 20 LTS | `node --version` |
 | Rust | stable | `rustup update stable` |
 | GitHub CLI | latest | `gh auth login` |
-| Google Drive for Desktop | latest | R3P shared drive must be mounted as `G:` |
 
-### Shared drive path
-
-The app defaults to reading updates from:
-
-```text
-G:\Shared drives\R3P RESOURCES\APPS\Shopvac\
-```
-
-Override for dev/testing by setting the environment variable:
-
-```powershell
-$env:SHOPVAC_UPDATE_PATH = "C:\path\to\local\test\folder"
-```
-
-The folder must contain `latest.json` and the installer `.exe`.
+No shared drive access is required. Distribution is through GitHub Releases only.
 
 ### Code signing (future improvement)
 
@@ -45,7 +30,7 @@ can click "More info → Run anyway." To add signing later:
 
 ---
 
-## 2. Cutting a desktop app release
+## 2. Cutting a release
 
 ### Step 1 — Bump the version
 
@@ -57,7 +42,7 @@ Edit **all three** files:
 | `frontend/package.json` | `"version"` |
 | `frontend/src-tauri/Cargo.toml` | `version` |
 
-All three must match, e.g. `0.1.0`. Use the helper script:
+All three must match, e.g. `0.2.0`. Use the helper script:
 
 ```bash
 node scripts/bump-version.mjs 0.2.0
@@ -65,8 +50,8 @@ node scripts/bump-version.mjs 0.2.0
 
 ### Step 2 — (Optional) Add release notes
 
-Create `RELEASE_NOTES.md` at the repository root. This content ends up in the
-GitHub Release body and in `latest.json` > `notes`.
+Create `RELEASE_NOTES.md` at the repository root. This content appears in the
+GitHub Release body and is displayed to users in the update prompt.
 
 ```markdown
 ## What's new in v0.2.0
@@ -85,58 +70,28 @@ git push && git push --tags
 ### Step 4 — Wait for CI
 
 The `.github/workflows/release.yml` workflow triggers on the tag push.
-Monitor it at `https://github.com/chamber-19/shopvac/actions`.
+Monitor it at `https://github.com/chamber-19/launcher/actions`.
 
 It will:
 
 1. Build the Vite frontend.
-2. Run `tauri build` → produces `Shopvac_0.2.0_x64-setup.exe`.
-3. Generate `latest.json`.
-4. Create a GitHub Release and upload both files.
+2. Run `tauri build` → produces `Chamber19.Launcher_0.2.0_x64-setup.exe`.
+3. Create a GitHub Release and upload the installer.
 
-> **Filename note:** `softprops/action-gh-release` sanitises spaces to dots on
-> upload, so the GitHub Release asset is named `Shopvac_<version>_x64-setup.exe`.
-> `publish-to-drive.ps1` uses a glob pattern to locate the installer, so it is
-> filename-agnostic and unaffected by this sanitisation.
-
-### Step 5 — Publish to shared drive
-
-After CI completes and the GitHub Release is created:
-
-1. Run the publish script:
-
-   ```powershell
-   .\scripts\publish-to-drive.ps1 -Tag v0.2.0
-   ```
-
-   This downloads the release assets from GitHub, archives the previous
-   installer on the shared drive, and copies the new installer + `latest.json`
-   into place.
-
-Within ~24 hours every user who launches the app will see the
-**Update Available** prompt.
+That's it. Users who open the launcher will see the **Update Available** prompt
+on their next launch and be forced to update before the app opens.
 
 ---
 
 ## 3. Rollback
 
-If a release has a critical bug:
+If a release has a critical bug, publish a new patch release with the fix. Users
+will be force-updated to the patch on their next launch.
 
-1. In the shared drive, move the bad installer back to `archive\` and restore
-   the previous installer from `archive\`:
-
-   ```powershell
-   $drive = "G:\Shared drives\R3P RESOURCES\APPS\Shopvac"
-   Move-Item "$drive\Shopvac_0.2.0_x64-setup.exe" "$drive\archive\"
-   Copy-Item "$drive\archive\Shopvac_0.1.0_x64-setup.exe" "$drive\"
-   ```
-
-2. Edit `latest.json` on the shared drive and set `"version"` back to the
-   previous good version (e.g. `"0.1.0"`).
-
-3. Users with the bad version will see the "older" manifest and the updater
-   will not trigger. They will need to manually run the old installer from
-   the shared drive.
+If you need to prevent further installs of a bad version before the fix is ready:
+edit the GitHub Release and delete the NSIS installer asset. The update check will
+then return `update_available: false` (no matching asset found) and users will
+continue running their current version.
 
 ---
 

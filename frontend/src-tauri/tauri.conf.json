@@ -1,9 +1,9 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
 
-  "productName": "Shopvac",
+  "productName": "Chamber19 Launcher",
   "version": "0.1.0",
-  "identifier": "com.chamber-19.shopvac",
+  "identifier": "com.chamber-19.launcher",
 
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -15,7 +15,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Shopvac",
+        "title": "Chamber19 Launcher",
         "width": 1280,
         "height": 900,
         "minWidth": 960,
@@ -25,7 +25,7 @@
       },
       {
         "label": "updater",
-        "title": "Shopvac — Update",
+        "title": "Chamber19 Launcher — Update",
         "url": "updater.html",
         "width": 520,
         "height": 320,
@@ -36,7 +36,7 @@
       },
       {
         "label": "splash",
-        "title": "Shopvac",
+        "title": "Chamber19 Launcher",
         "url": "splash.html",
         "width": 680,
         "height": 460,
