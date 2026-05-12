@@ -1,0 +1,174 @@
+
+=== DIRECTORY TREE (max depth 3, source files only) ===
+.github
+.github\copilot-instructions.md
+.github\dependabot.yml
+.github\instructions
+.github\instructions\tauri-desktop.instructions.md
+.github\prompts
+.github\prompts\consume-toolkit-bump.prompt.md
+.github\workflows
+.github\workflows\backend-released.yml
+.github\workflows\copilot-setup-steps.yml
+.github\workflows\cut-release.yml
+.github\workflows\release.yml
+.gitignore
+.markdownlint-cli2.jsonc
+.markdownlint.jsonc
+.markdownlintignore
+AGENTS.md
+CHANGELOG.md
+CONTRIBUTING.md
+docs
+docs\AUTO_UPDATER.md
+docs\codebase
+docs\codebase\.codebase-scan.txt
+docs\codebase\ARCHITECTURE.md
+docs\codebase\CONCERNS.md
+docs\codebase\CONVENTIONS.md
+docs\codebase\INTEGRATIONS.md
+docs\codebase\STACK.md
+docs\codebase\STRUCTURE.md
+docs\codebase\TESTING.md
+docs\mcp.md
+frontend
+frontend\.env.example
+frontend\.gitignore
+frontend\.npmrc
+frontend\index.html
+frontend\package-lock.json
+frontend\package.json
+frontend\splash.html
+frontend\splash.jsx
+frontend\src
+frontend\src\activationAuth.js
+frontend\src\ActivationGate.jsx
+frontend\src\App.e2e.test.jsx
+frontend\src\App.jsx
+frontend\src\main.jsx
+frontend\src-tauri
+frontend\src-tauri\backends.json
+frontend\src-tauri\build.rs
+frontend\src-tauri\capabilities
+frontend\src-tauri\capabilities\default.json
+frontend\src-tauri\Cargo.lock
+frontend\src-tauri\Cargo.toml
+frontend\src-tauri\gen
+frontend\src-tauri\gen\schemas
+frontend\src-tauri\src
+frontend\src-tauri\src\activation.rs
+frontend\src-tauri\src\backend_manager.rs
+frontend\src-tauri\src\launcher_updater.rs
+frontend\src-tauri\src\lib.rs
+frontend\src-tauri\src\main.rs
+frontend\src-tauri\tauri.conf.json
+frontend\updater.html
+frontend\updater.jsx
+frontend\vite.config.js
+frontend\vitest.config.js
+LICENSE
+MIGRATION.md
+README.md
+RELEASING.md
+scripts
+scripts\bump-version.mjs
+scripts\fetch-updater-shim.ps1
+TROUBLESHOOTING.md
+
+=== STACK DETECTION (manifest files) ===
+No recognized manifest files found in project root.
+
+=== ENTRY POINTS ===
+No common entry points found. Check 'main' or 'scripts.start' in manifest files above.
+
+=== LINTING AND FORMATTING CONFIG ===
+No linting or formatting config files found in project root.
+
+=== ENVIRONMENT VARIABLE TEMPLATES ===
+No .env.example or .env.template found. Identify required environment variables by searching the code and config for environment variable reads.
+
+=== TODO / FIXME / HACK (production code only, test dirs excluded) ===
+None found.
+
+=== GIT RECENT COMMITS (last 20) ===
+1624377 docs: add v0.2.0 release notes
+9d31c89 feat: rename crate to launcher, add backend manager + GitHub Releases self-update, remove G:\ drive
+a9bbcc7 Merge pull request #25 from chamber-19/refactor/activation-and-desktop-toolkit
+487c076 Merge pull request #24 from chamber-19/auto/sync-copilot-instructions-5f9ff9f
+d5c685e chore(instructions): sync Copilot instructions with org skill updates
+36230b7 docs: document Block Library as separate desktop app (not HTTP-routed)
+88156e1 feat(routing): add drawing-list-manager backend to launcher app router
+cb88377 feat(routing): add batch-fnr backend to launcher app router
+7a7ff88 Merge pull request #23 from chamber-19/refactor/activation-and-desktop-toolkit
+f5a1b42 fix: address Copilot review findings for activation flow
+d29f7c8 Merge pull request #22 from chamber-19/refactor/activation-and-desktop-toolkit
+863cc99 feat(launcher): enforce activation headers and 401 reauth flow
+f04e451 docs: Reference .github repo as source of truth for SKILLS and shared knowledge
+e7ec8dd docs: Add markdown formatting standards to copilot-instructions
+8442c29 refactor: Add activation gate, app routing, and universal shell architecture
+5f00494 Merge pull request #15 from chamber-19:chore--update-dependabot-configuration-and-add-copilot-setup-workflow
+61930f6 chore: update dependabot configuration and add copilot setup workflow
+9796d90 Merge pull request #14 from chamber-19/chore/dependabot-labels
+d0f8283 chore(dependabot): add per-ecosystem labels for triage filtering
+0f12d69 Merge pull request #13 from chamber-19/copilot/update-copilot-instructions
+
+=== HIGH-CHURN FILES (last 90 days, top 20) ===
+  16 .github/copilot-instructions.md
+   9 README.md
+   7 frontend/src/App.jsx
+   6 CHANGELOG.md
+   5 .github/dependabot.yml
+   4 .gitignore
+   4 frontend/src-tauri/Cargo.toml
+   4 frontend/src-tauri/src/lib.rs
+   3 CONTRIBUTING.md
+   3 MIGRATION.md
+   3 RELEASING.md
+   3 TROUBLESHOOTING.md
+   3 frontend/package-lock.json
+   3 frontend/package.json
+   3 frontend/.env.example
+   3 frontend/src/ActivationGate.jsx
+   3 .github/workflows/copilot-setup-steps.yml
+   2 .github/workflows/release.yml
+   2 docs/AUTO_UPDATER.md
+   2 frontend/index.html
+
+=== MONOREPO SIGNALS ===
+No monorepo signals detected.
+
+=== CODE METRICS ===
+Total files scanned: 59
+Total lines of code: 10309
+
+Files by language:
+  Other: 44
+  JavaScript/React: 6
+  Rust: 6
+  JavaScript: 3
+
+Top 10 largest files:
+frontend\src-tauri\Cargo.lock: 143.0KB
+frontend\src-tauri\gen\schemas\desktop-schema.json: 127.3KB
+frontend\src-tauri\gen\schemas\windows-schema.json: 127.3KB
+frontend\package-lock.json: 117.9KB
+frontend\src-tauri\gen\schemas\acl-manifests.json: 68.3KB
+frontend\src\App.jsx: 11.1KB
+frontend\src-tauri\src\backend_manager.rs: 8.5KB
+.github\copilot-instructions.md: 8.3KB
+README.md: 7.5KB
+.github\workflows\release.yml: 6.7KB
+
+=== CI/CD PIPELINES ===
+CI/CD: GitHub Actions
+
+=== CONTAINERS & ORCHESTRATION ===
+No containerization configs detected.
+
+=== SECURITY & COMPLIANCE ===
+No security configs detected.
+
+=== PERFORMANCE & TESTING ===
+No performance testing configs detected.
+
+=== SCAN COMPLETE ===
