@@ -1,7 +1,7 @@
 [package]
 name = "launcher"
 version = "0.1.0"
-description = "Launcher — Chamber-19 desktop shell"
+description = "Launcher -- Chamber-19 desktop shell"
 authors = ["Chamber-19"]
 license = "MIT"
 edition = "2021"
@@ -20,10 +20,11 @@ tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-desktop-toolkit = { git = "https://github.com/chamber-19/desktop-toolkit", tag = "v2.2.4" }
-reqwest = { version = "0.11", features = ["json"] }
-sha2 = "0.11"
-hostname = "0.4"
+desktop-toolkit = { git = "https://github.com/chamber-19/desktop-toolkit", tag = "v2.5.0" }
+
+[package.metadata.desktop-toolkit]
+library-tag = "v2.5.0"
+shim-tag    = "v2.5.0"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
