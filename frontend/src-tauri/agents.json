@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "purpose_required": true,
+  "mascot_templates": [
+    "Scarlet Jackal",
+    "Ash Golem",
+    "Forge Bear",
+    "Rose Moth",
+    "Graphite Owl"
+  ],
+  "apps": [
+    {
+      "app_id": "civil-engineering-planner",
+      "display_name": "Civil Engineering Planner"
+    },
+    {
+      "app_id": "glyphic",
+      "display_name": "Glyphic"
+    }
+  ]
+}

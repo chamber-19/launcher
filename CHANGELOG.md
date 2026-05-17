@@ -38,6 +38,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Dependencies: `reqwest`, `sha2`, `hostname` for hardware fingerprinting
 
+- Per-app AI agent starter scaffold wiring in launcher:
+  - Add `frontend/src-tauri/agents.json` with default v7 mascot templates and app seeds for Civil Engineering Planner and Glyphic
+  - Add `frontend/src-tauri/src/agent_scaffold.rs` to initialize empty per-app starter files under app data (`agent-manifest.json`, `AGENT_PURPOSE.md`, `<app_id>.agents.db`, `<app_id>.memory.db`)
+  - Wire scaffold initialization into Tauri startup in `frontend/src-tauri/src/lib.rs`
+  - Add Tauri command `get_agent_scaffold_status` for frontend visibility into scaffold file paths
+
 ### Changed
 
 - Consumer apps no longer need Tauri/React code; launcher handles all UI
