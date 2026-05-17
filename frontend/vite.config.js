@@ -47,6 +47,22 @@ export default defineConfig({
     target: "chrome111",
     // Emit a source-map in debug builds so Tauri's devtools are useful.
     sourcemap: !!process.env.TAURI_ENV_DEBUG,
+    // Use Terser for production minification: mangles _private properties,
+    // strips console.* calls, and drops debugger statements.
+    minify: 'terser',
+    terserOptions: {
+      mangle: {
+        properties: {
+          // Mangle any property name starting with _ (private convention).
+          regex: /^_/,
+        },
+      },
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.debug', 'console.info'],
+      },
+    },
     // Multi-page: include the updater and splash windows alongside the main app.
     rollupOptions: {
       input: {
