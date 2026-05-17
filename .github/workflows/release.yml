@@ -84,7 +84,7 @@ jobs:
       # so the NSIS HOOK_POSTINSTALL can bundle it alongside the main exe.
       - name: Build desktop-toolkit-updater shim
         run: |
-          $desktopToolkitTag = "v2.2.4"
+          $desktopToolkitTag = "v2.5.0"
           git clone --depth 1 --branch $desktopToolkitTag `
             https://github.com/chamber-19/desktop-toolkit `
             "$env:RUNNER_TEMP\dtk"
@@ -111,11 +111,28 @@ jobs:
         run: npm run build
 
       # ── 6. Tauri build ───────────────────────────────────────────────────
+      - name: Verify ACTIVATION_HMAC_SECRET is set
+        shell: pwsh
+        run: |
+          if (-not $env:ACTIVATION_HMAC_SECRET) {
+            Write-Host "::error::ACTIVATION_HMAC_SECRET repository secret is not set."
+            Write-Host "::error::Set it under Settings -> Secrets and variables -> Actions."
+            Write-Host "::error::The desktop-toolkit v2.5.0 activation crate requires this at compile time for release builds."
+            throw "missing required secret"
+          }
+          Write-Host "ACTIVATION_HMAC_SECRET is set (length: $($env:ACTIVATION_HMAC_SECRET.Length))"
+        env:
+          ACTIVATION_HMAC_SECRET: ${{ secrets.ACTIVATION_HMAC_SECRET }}
+
       - name: Build Tauri app (NSIS installer)
         working-directory: frontend
         run: npx tauri build
         env:
           TAURI_SIGNING_PRIVATE_KEY: ""   # No code-signing yet; see RELEASING.md
+          # Required by desktop-toolkit v2.5.0 -- baked into the launcher
+          # binary at compile time. Must match the same value set on every
+          # consumer backend host so toolkit-bearer tokens verify.
+          ACTIVATION_HMAC_SECRET: ${{ secrets.ACTIVATION_HMAC_SECRET }}
 
       # ── 7. Locate built artefacts ────────────────────────────────────────
       - name: Locate NSIS installer
