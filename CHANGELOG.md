@@ -38,6 +38,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 - Dependencies: `reqwest`, `sha2`, `hostname` for hardware fingerprinting
 
+- Per-app AI agent starter scaffold wiring in launcher:
+  - Add `frontend/src-tauri/agents.json` with default v7 mascot templates and app seeds for Civil Engineering Planner and Glyphic
+  - Add `frontend/src-tauri/src/agent_scaffold.rs` to initialize empty per-app starter files under app data (`agent-manifest.json`, `AGENT_PURPOSE.md`, `<app_id>.agents.db`, `<app_id>.memory.db`)
+  - Wire scaffold initialization into Tauri startup in `frontend/src-tauri/src/lib.rs`
+  - Add Tauri command `get_agent_scaffold_status` for frontend visibility into scaffold file paths
+
 ### Changed
 
 - Consumer apps no longer need Tauri/React code; launcher handles all UI
@@ -55,3 +61,28 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   authorization header wiring, and activation-state clearing.
 - Launcher E2E coverage in `src/App.e2e.test.jsx` for
   activate -> protected access -> forced re-activation on `401`.
+
+---
+
+## [0.2.0] — 2026-05-10
+
+### Changed
+
+- Rename Cargo crate `shopvac` -> `launcher` throughout (`Cargo.toml`, `main.rs`, `tauri.conf.json`, `package.json`, `package-lock.json`, docs, and scripts).
+- Add `frontend/src-tauri/backends.json` baked into the binary via `include_str!`, listing managed backends with `id`, `repo`, `exe_name`, `port`, and `pinned_version`.
+- Add `src/backend_manager.rs`: downloads pinned backend executables from GitHub Releases tags, caches in AppData, spawns subprocesses, and exposes `get_backend_status` and `launch_backend` commands.
+- Add `src/launcher_updater.rs`: checks `chamber-19/launcher` releases at startup, downloads NSIS installer to temp, runs detached silent install (`/S`), and exits; fails open if GitHub is unreachable.
+- Add `UpdateGate` in `App.jsx` to block the main UI until launcher is current; fails open on network error.
+- Register `BackendProcesses` managed state and new Tauri commands in `lib.rs`.
+- Add `.github/workflows/backend-released.yml`: handles `repository_dispatch` from backend repos, bumps `backends.json` pin and launcher patch version in version files, commits to `main`, and pushes tag using `RELEASE_BOT_PAT`.
+- Add `.github/workflows/cut-release.yml`: manual workflow for bump type or explicit version input; updates version files, commits, tags, and pushes.
+- Remove `scripts/publish-to-drive.ps1` and `scripts/generate-latest-json.mjs`.
+- Remove `latest.json` generation/upload from release workflow.
+- Rewrite `RELEASING.md` and `docs/AUTO_UPDATER.md` for GitHub Releases distribution.
+- Update `TROUBLESHOOTING.md`, `CONTRIBUTING.md`, and `.github/copilot-instructions.md` to remove `G:\` references and document required release automation secrets.
+
+### Added
+
+- Distribution automation prerequisites:
+  - `RELEASE_BOT_PAT` (launcher repo): PAT with repo scope used by release automation workflows.
+  - `LAUNCHER_DISPATCH_TOKEN` (Transmittal-Builder repo): PAT used to dispatch `backend-released` events to launcher.

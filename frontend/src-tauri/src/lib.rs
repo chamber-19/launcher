@@ -2,6 +2,7 @@
 // Handles: Tauri/Rust infrastructure, activation, updates, backend lifecycle
 
 mod activation;
+mod agent_scaffold;
 mod backend_manager;
 mod launcher_updater;
 
@@ -18,12 +19,17 @@ pub fn run() {
             activation::request_activation_pin,
             activation::activate_machine,
             activation::validate_activation_token,
+            agent_scaffold::get_agent_scaffold_status,
             backend_manager::get_backend_status,
             backend_manager::launch_backend,
             launcher_updater::check_launcher_update,
             launcher_updater::apply_launcher_update,
         ])
-        .setup(|_app| Ok(()))
+        .setup(|app| {
+            // Create per-app starter agent files on first launch if missing.
+            agent_scaffold::initialize_agent_scaffolds(app.handle())?;
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
