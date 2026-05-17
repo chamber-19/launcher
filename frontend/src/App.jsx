@@ -1,11 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import ActivationGate from './ActivationGate';
-import {
-  clearActivationState,
-  isPinActivationEnforced,
-  withActivationHeaders,
-} from './activationAuth';
+import { withToolkitBearer } from '@chamber-19/desktop-toolkit/activation/bearer';
 
 // ── Update gate ───────────────────────────────────────────────────────────────
 
@@ -25,7 +20,7 @@ function UpdateGate({ children }) {
         }
       })
       .catch((err) => {
-        // Network failure — let the app open rather than blocking
+        // Network failure -- let the app open rather than blocking
         console.warn('Update check failed, continuing:', err);
         setState('current');
       });
@@ -44,7 +39,7 @@ function UpdateGate({ children }) {
   if (state === 'checking') {
     return (
       <div style={styles.center}>
-        <p style={styles.muted}>Checking for updates…</p>
+        <p style={styles.muted}>Checking for updates...</p>
       </div>
     );
   }
@@ -54,7 +49,7 @@ function UpdateGate({ children }) {
       <div style={styles.updateScreen}>
         <h2 style={styles.heading}>Update available</h2>
         <p style={styles.meta}>
-          v{updateInfo.current_version} → v{updateInfo.latest_version}
+          v{updateInfo.current_version} -&gt; v{updateInfo.latest_version}
         </p>
         {updateInfo.notes && (
           <pre style={styles.notes}>{updateInfo.notes}</pre>
@@ -69,7 +64,7 @@ function UpdateGate({ children }) {
   if (state === 'applying') {
     return (
       <div style={styles.center}>
-        <p style={styles.muted}>Downloading update…</p>
+        <p style={styles.muted}>Downloading update...</p>
       </div>
     );
   }
@@ -142,64 +137,18 @@ async function probeProtectedBackend(backendUrl, probeEndpoint = '/api/scan-proj
   const probeUrl = probeEndpoint.includes('?')
     ? `${backendUrl}${probeEndpoint}`
     : `${backendUrl}${probeEndpoint}?root=${encodeURIComponent(rootPath)}`;
-  return fetch(probeUrl, withActivationHeaders({}, { requireToken: true }));
+  return fetch(probeUrl, await withToolkitBearer({}));
 }
 
 export default function App() {
   return (
     <UpdateGate>
-      <AppInner />
+      <MainApp backendUrl={DEFAULT_BACKEND_URL} />
     </UpdateGate>
   );
 }
 
-function AppInner() {
-  const [activated, setActivated] = useState(null);
-  const [backendUrl] = useState(DEFAULT_BACKEND_URL);
-
-  const handleUnauthorized = useCallback(() => {
-    clearActivationState();
-    setActivated(false);
-  }, []);
-
-  // Check activation status on mount
-  useEffect(() => {
-    async function checkActivation() {
-      try {
-        const token = localStorage.getItem('activation_token');
-        const hardware = localStorage.getItem('activation_hardware');
-        
-        if (token && hardware) {
-          // Validate token with backend
-          const isValid = await invoke('validate_activation_token', {
-            backendUrl,
-            hardwareFingerprint: hardware,
-            token: token,
-          });
-          setActivated(isValid);
-        } else {
-          setActivated(false);
-        }
-      } catch (err) {
-        console.error('Activation check failed:', err);
-        setActivated(false);
-      }
-    }
-    checkActivation();
-  }, [backendUrl]);
-
-  if (activated === null) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;
-  }
-
-  if (!activated) {
-    return <ActivationGate backendUrl={backendUrl} onActivated={() => setActivated(true)} />;
-  }
-
-  return <MainApp backendUrl={backendUrl} onUnauthorized={handleUnauthorized} />;
-}
-
-function MainApp({ backendUrl, onUnauthorized }) {
+function MainApp({ backendUrl }) {
   const [backendStatus, setBackendStatus] = useState('checking');
   const [startupError, setStartupError] = useState(null);
   const [accessMessage, setAccessMessage] = useState(null);
@@ -209,32 +158,17 @@ function MainApp({ backendUrl, onUnauthorized }) {
 
     async function startupProbe() {
       try {
-        if (isPinActivationEnforced() && !localStorage.getItem('activation_token')) {
-          setStartupError('missing-activation-token');
-          setBackendStatus('failed');
-          return;
-        }
-
-        const healthRes = await fetch(
-          `${backendUrl}/api/health`,
-          withActivationHeaders({}, { requireToken: false })
-        );
-        if (healthRes.status === 401) {
-          onUnauthorized();
-          return;
-        }
+        // Health endpoint -- doesn't require auth.
+        const healthRes = await fetch(`${backendUrl}/api/health`);
         if (!healthRes.ok) {
           throw new Error(`Health check failed with status ${healthRes.status}`);
         }
 
+        // Protected probe -- attaches a fresh toolkit bearer.
         const protectedRes = await probeProtectedBackend(backendUrl);
-        if (protectedRes.status === 401) {
-          onUnauthorized();
-          return;
-        }
 
-        // Some backends may return 400/404 for a synthetic probe path; that still
-        // confirms token wiring and avoids blocking launcher startup.
+        // Some backends may return 400/404 for a synthetic probe path; that
+        // still confirms token wiring and avoids blocking launcher startup.
         if (!protectedRes.ok && protectedRes.status !== 400 && protectedRes.status !== 404) {
           throw new Error(`Protected probe failed with status ${protectedRes.status}`);
         }
@@ -244,13 +178,8 @@ function MainApp({ backendUrl, onUnauthorized }) {
           setBackendStatus('ready');
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        if (message.includes('Activation token missing')) {
-          onUnauthorized();
-          return;
-        }
-
         if (!cancelled) {
+          setStartupError(error instanceof Error ? error.message : String(error));
           setBackendStatus('failed');
         }
       }
@@ -260,17 +189,12 @@ function MainApp({ backendUrl, onUnauthorized }) {
     return () => {
       cancelled = true;
     };
-  }, [backendUrl, onUnauthorized]);
+  }, [backendUrl]);
 
   async function handleProtectedAccessCheck() {
     setAccessMessage('Checking protected backend access...');
     try {
       const response = await probeProtectedBackend(backendUrl);
-
-      if (response.status === 401) {
-        onUnauthorized();
-        return;
-      }
 
       if (!response.ok && response.status !== 400 && response.status !== 404) {
         throw new Error(`Protected call failed with status ${response.status}`);
@@ -279,10 +203,6 @@ function MainApp({ backendUrl, onUnauthorized }) {
       setAccessMessage('Protected backend access is available.');
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if (message.includes('Activation token missing')) {
-        onUnauthorized();
-        return;
-      }
       setAccessMessage(`Protected backend call failed: ${message}`);
     }
   }
@@ -299,11 +219,7 @@ function MainApp({ backendUrl, onUnauthorized }) {
     return (
       <div style={{ padding: '20px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
         <h1>Launcher startup failed</h1>
-        {startupError === 'missing-activation-token' ? (
-          <p>No activation token found while PIN activation is enforced. Please reactivate in launcher.</p>
-        ) : (
-          <p>Unable to verify backend startup. Please confirm the backend service is running.</p>
-        )}
+        <p>{startupError || 'Unable to verify backend startup. Please confirm the backend service is running.'}</p>
       </div>
     );
   }
@@ -312,7 +228,7 @@ function MainApp({ backendUrl, onUnauthorized }) {
     <div style={{ padding: '20px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       <h1>Launcher v0.1.0</h1>
       <p>Universal activation shell for Chamber 19 tools</p>
-      
+
       <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#f0f0f0', borderRadius: '4px' }}>
         <h2>Available Apps</h2>
         <ul>
@@ -339,10 +255,6 @@ function MainApp({ backendUrl, onUnauthorized }) {
         {accessMessage && (
           <p style={{ marginTop: '10px', fontSize: '13px', color: '#444' }}>{accessMessage}</p>
         )}
-      </div>
-
-      <div style={{ marginTop: '20px', fontSize: '12px', color: '#999' }}>
-        <p>Machine activated. Backend: {localStorage.getItem('activation_hardware')?.slice(0, 16)}...</p>
       </div>
     </div>
   );

@@ -1,12 +1,13 @@
-// Launcher — Desktop shell for Chamber-19 apps
-// Handles: Tauri/Rust infrastructure, activation, updates, backend lifecycle
+// Launcher -- Desktop shell for Chamber-19 apps.
+// Handles: Tauri/Rust infrastructure, updates, backend lifecycle, and the
+// org-shared PIN activation flow (Drive-keyed, owned by desktop-toolkit).
 
-mod activation;
 mod agent_scaffold;
 mod backend_manager;
 mod launcher_updater;
 
 use backend_manager::BackendProcesses;
+use desktop_toolkit::activation;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -15,10 +16,10 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(BackendProcesses(std::sync::Mutex::new(Vec::new())))
         .invoke_handler(tauri::generate_handler![
-            activation::get_hardware_fingerprint,
-            activation::request_activation_pin,
-            activation::activate_machine,
-            activation::validate_activation_token,
+            activation::commands::toolkit_check_activation,
+            activation::commands::toolkit_activate_with_pin,
+            activation::commands::toolkit_deactivate,
+            activation::commands::toolkit_get_bearer_token,
             agent_scaffold::get_agent_scaffold_status,
             backend_manager::get_backend_status,
             backend_manager::launch_backend,
