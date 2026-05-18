@@ -17,6 +17,15 @@ function UpdateGate({ children }) {
   const [errorMsg, setErrorMsg] = useState(null);
 
   useEffect(() => {
+    // Skip the update check entirely when running outside the Tauri shell
+    // (e.g. Vite dev server in a regular browser tab) -- invoke() would
+    // throw "Cannot read properties of undefined (reading 'invoke')" trying
+    // to reach window.__TAURI_INTERNALS__.
+    if (typeof window === 'undefined' || !window.__TAURI_INTERNALS__) {
+      setState('current');
+      return;
+    }
+
     invoke('check_launcher_update')
       .then((info) => {
         if (info.update_available) {
