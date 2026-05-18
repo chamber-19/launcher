@@ -1,6 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { withToolkitBearer } from '@chamber-19/desktop-toolkit/activation/bearer';
+import { DashboardOverview } from '@chamber-19/desktop-toolkit/dashboard';
+
+// Foundry broker URL for the Ops tab. Override via VITE_FOUNDRY_BROKER_URL
+// for non-default deployments.
+const FOUNDRY_BROKER_URL =
+  import.meta.env.VITE_FOUNDRY_BROKER_URL || 'http://127.0.0.1:57420';
+const FOUNDRY_API_KEY = import.meta.env.VITE_FOUNDRY_API_KEY || '';
 
 // ── Update gate ───────────────────────────────────────────────────────────────
 
@@ -224,38 +231,82 @@ function MainApp({ backendUrl }) {
     );
   }
 
-  return (
-    <div style={{ padding: '20px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      <h1>Launcher v0.1.0</h1>
-      <p>Universal activation shell for Chamber 19 tools</p>
+  return <MainAppShell accessMessage={accessMessage} handleProtectedAccessCheck={handleProtectedAccessCheck} />;
+}
 
-      <div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#f0f0f0', borderRadius: '4px' }}>
-        <h2>Available Apps</h2>
-        <ul>
-          {Object.entries(AVAILABLE_APPS).map(([id, app]) => (
-            <li key={id}>
-              <a href={app.url}>{app.label}</a>
-            </li>
-          ))}
-        </ul>
-        <button
-          onClick={handleProtectedAccessCheck}
-          style={{
-            marginTop: '10px',
-            padding: '10px 14px',
-            border: 'none',
-            borderRadius: '4px',
-            backgroundColor: '#1d5bd1',
-            color: '#fff',
-            cursor: 'pointer',
-          }}
-        >
-          Check protected backend access
-        </button>
-        {accessMessage && (
-          <p style={{ marginTop: '10px', fontSize: '13px', color: '#444' }}>{accessMessage}</p>
+function MainAppShell({ accessMessage, handleProtectedAccessCheck }) {
+  const [activeTab, setActiveTab] = useState('apps');
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif', background: '#09090b', color: '#fafafa' }}>
+      <header style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 20px', borderBottom: '1px solid #27272a' }}>
+        <strong style={{ fontFamily: 'ui-monospace, monospace', fontSize: 14 }}>Chamber 19 Launcher</strong>
+        <nav style={{ display: 'flex', gap: 4, marginLeft: 12 }}>
+          <TabButton active={activeTab === 'apps'} onClick={() => setActiveTab('apps')}>Apps</TabButton>
+          <TabButton active={activeTab === 'ops'} onClick={() => setActiveTab('ops')}>Ops</TabButton>
+        </nav>
+      </header>
+
+      <main style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        {activeTab === 'apps' ? (
+          <div style={{ padding: 24, maxWidth: 720 }}>
+            <p style={{ color: '#a1a1aa', marginBottom: 16 }}>Universal activation shell for Chamber 19 tools.</p>
+            <h2 style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#71717a', margin: '0 0 10px' }}>Available apps</h2>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {Object.entries(AVAILABLE_APPS).map(([id, app]) => (
+                <li key={id} style={{ padding: '10px 12px', background: '#18181b', border: '1px solid #27272a', borderRadius: 8 }}>
+                  <a href={app.url} style={{ color: '#fafafa', textDecoration: 'none', fontWeight: 500 }}>{app.label}</a>
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={handleProtectedAccessCheck}
+              style={{
+                marginTop: 16,
+                padding: '8px 14px',
+                border: '1px solid #27272a',
+                borderRadius: 6,
+                background: '#3b82f6',
+                color: '#fff',
+                cursor: 'pointer',
+                fontSize: 13,
+              }}
+            >
+              Check protected backend access
+            </button>
+            {accessMessage && (
+              <p style={{ marginTop: 10, fontSize: 12, color: '#a1a1aa' }}>{accessMessage}</p>
+            )}
+          </div>
+        ) : (
+          <DashboardOverview
+            brokerUrl={FOUNDRY_BROKER_URL}
+            apiKey={FOUNDRY_API_KEY || undefined}
+          />
         )}
-      </div>
+      </main>
     </div>
+  );
+}
+
+function TabButton({ active, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        padding: '6px 14px',
+        borderRadius: 6,
+        border: 'none',
+        background: active ? '#27272a' : 'transparent',
+        color: active ? '#fafafa' : '#a1a1aa',
+        fontSize: 13,
+        fontWeight: active ? 500 : 400,
+        cursor: 'pointer',
+        transition: 'background 150ms, color 150ms',
+      }}
+    >
+      {children}
+    </button>
   );
 }
