@@ -201,12 +201,16 @@ pub async fn get_backend_status(app: AppHandle, id: String) -> Result<BackendSta
     let ver_path = cached_version_path(&app, def);
     let cached_version = std::fs::read_to_string(&ver_path).ok().map(|s| s.trim().to_string());
 
-    let processes = app
-        .state::<BackendProcesses>()
-        .0
-        .lock()
-        .map_err(|e| e.to_string())?;
-    let running = processes.iter().any(|(pid, _)| pid == &id);
+    // Scope the lock so the MutexGuard drops before the await below --
+    // MutexGuard is !Send, and Tauri command futures must be Send.
+    let running = {
+        let backend_state = app.state::<BackendProcesses>();
+        let processes = backend_state
+            .0
+            .lock()
+            .map_err(|e| e.to_string())?;
+        processes.iter().any(|(pid, _)| pid == &id)
+    };
 
     // Non-blocking latest version check
     let latest_version = match fetch_latest_release(&def.repo).await {
@@ -244,8 +248,8 @@ pub async fn launch_backend(app: AppHandle, id: String) -> Result<(), String> {
 
     // Check if already running
     {
-        let processes = app
-            .state::<BackendProcesses>()
+        let backend_state = app.state::<BackendProcesses>();
+        let processes = backend_state
             .0
             .lock()
             .map_err(|e| e.to_string())?;
