@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs::OpenOptions;
 use std::path::PathBuf;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 static AGENTS_JSON: &str = include_str!("../agents.json");
 
